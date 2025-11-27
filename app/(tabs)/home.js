@@ -1,6 +1,7 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
+import Header from "../components/header";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -8,7 +9,8 @@ export default function HomeScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.emoji}>👋</Text>
+        <Header />
+        <Image source={require('../../assets/bannerAppetite.png')} style={styles.banner} />
         <Text style={styles.title}>Bem-vindo(a)!</Text>
         <Text style={styles.userName}>{user?.name}</Text>
 
@@ -47,12 +49,14 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#FFFCFC",
+  },
+  banner: {
+    marginTop: 20,
   },
   content: {
     flex: 1,
-    padding: 20,
-    paddingTop: 60,
+    display: "flex",
   },
   emoji: {
     fontSize: 80,
