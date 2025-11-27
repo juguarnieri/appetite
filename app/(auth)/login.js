@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Image,  
 } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import { Link } from "expo-router";
@@ -45,9 +46,8 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.content}>
-        <Text style={styles.emoji}>🔐</Text>
-        <Text style={styles.title}>Bem-vindo!</Text>
-        <Text style={styles.subtitle}>Faça login para continuar</Text>
+        <Image source={require('../../assets/logoAppetite.png')} style={styles.logo} />
+        <Text style={styles.title}>Entrar na sua conta</Text>
 
         <TextInput
           style={styles.input}
@@ -102,55 +102,55 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#FFFAF0",
   },
   content: {
+    display: "flex",
     flex: 1,
+    alignItems: "center",
     justifyContent: "center",
     padding: 20,
   },
-  emoji: {
-    fontSize: 60,
-    textAlign: "center",
-    marginBottom: 20,
+  logo: {
+    fontSize: 80,
   },
   title: {
-    fontSize: 32,
+    fontSize: 25,
     fontWeight: "bold",
-    color: "#333",
-    marginBottom: 8,
+    color: "black",
+    marginBottom: 30,
     textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 40,
-    textAlign: "center",
+    fontFamily: "Arial",
   },
   input: {
-    backgroundColor: "#fff",
-    borderRadius: 8,
+    backgroundColor: "#e4f1da",
+    borderRadius: 12,
+    width: "90%",
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#D9D9D9",
+    color: "black",
+    outlineStyle: "none",
+    placeholderTextColor: "#797979",
   },
   button: {
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
+    backgroundColor: "#035810",
+    borderRadius: 12,
     padding: 15,
     alignItems: "center",
     marginTop: 10,
     minHeight: 50,
+    width: "70%",
     justifyContent: "center",
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#FFF",
+    fontSize: 18,
     fontWeight: "bold",
   },
   registerContainer: {
@@ -160,18 +160,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   registerText: {
-    color: "#666",
+    color: "#797979",
     fontSize: 14,
   },
   registerLink: {
-    color: "#007AFF",
+    color: "#00AD1A",
     fontSize: 14,
     fontWeight: "bold",
   },
   infoText: {
     marginTop: 30,
     textAlign: "center",
-    color: "#888",
+    color: "#797979",
     fontSize: 14,
     paddingHorizontal: 20,
   },
