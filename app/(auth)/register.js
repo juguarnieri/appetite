@@ -10,6 +10,7 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  Image,
 } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRouter } from "expo-router";
@@ -39,7 +40,6 @@ export default function RegisterScreen() {
       return;
     }
 
-    // Validação básica de email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert("Erro", "Email inválido");
@@ -52,7 +52,6 @@ export default function RegisterScreen() {
 
       if (result.success) {
         Alert.alert("Sucesso", "Conta criada com sucesso!", [{ text: "OK" }]);
-        // O AuthContext já redireciona automaticamente
       } else {
         Alert.alert("Erro", result.message || "Falha ao criar conta");
       }
@@ -73,9 +72,8 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>
-          <Text style={styles.emoji}>✨</Text>
+          <Image source={require('../../assets/logoAppetite.png')} style={styles.logo} />
           <Text style={styles.title}>Criar Conta</Text>
-          <Text style={styles.subtitle}>Preencha os dados abaixo</Text>
 
           <TextInput
             style={styles.input}
@@ -145,51 +143,48 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#FFFCFC",
   },
   scrollContent: {
     flexGrow: 1,
   },
   content: {
     flex: 1,
+    display: "flex",
+    alignItems: "center",
     justifyContent: "center",
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 40,
   },
-  emoji: {
+  logo: {
     fontSize: 60,
-    textAlign: "center",
-    marginBottom: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 25,
     fontWeight: "bold",
-    color: "#333",
-    marginBottom: 8,
+    color: "black",
+    marginBottom: 30,
     textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 40,
-    textAlign: "center",
+    fontFamily: "Arial",
   },
   input: {
-    backgroundColor: "#fff",
+    backgroundColor: "#e4f1da",
     borderRadius: 8,
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
+    outlineStyle: "none",
+    width: "80%",
+    color: "black",
+    placeholderTextColor: "#797979",
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#d9d9d9",
   },
   button: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#035810",
     borderRadius: 8,
     padding: 15,
     alignItems: "center",
     marginTop: 10,
+    width: "70%",
     minHeight: 50,
     justifyContent: "center",
   },
@@ -207,7 +202,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   backText: {
-    color: "#007AFF",
+    color: "#00AD1A",
     fontSize: 14,
     fontWeight: "bold",
   },
