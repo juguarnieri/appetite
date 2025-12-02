@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import Header from "../components/header";
+import NavComidas from "../components/navComidas";
 
 export default function HomeScreen() {
   const { user } = useAuth();
@@ -15,11 +16,31 @@ export default function HomeScreen() {
         <Text style={styles.userName}>{user?.name}</Text>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>✅ Você está autenticado!</Text>
-          <Text style={styles.cardText}>
-            Esta é uma rota privada protegida pelo Expo Router. Você só consegue
-            acessar esta tela porque fez login com sucesso.
-          </Text>
+          <NavComidas
+            icon={require('../../assets/doceIcon.png')}
+            navTitulo="Doce"
+          />
+
+          <NavComidas
+            icon={require('../../assets/hamburIcon.png')}
+            navTitulo="Hambúrguer"
+          />
+
+          <NavComidas
+            icon={require('../../assets/veganIcon.png')}
+            navTitulo="Vegano"
+          />
+
+          <NavComidas
+            icon={require('../../assets/macaIcon.png')}
+            navTitulo="Maçã"
+          />
+
+          <NavComidas
+            icon={require('../../assets/drinkIcon.png')}
+            navTitulo="Bebidas"
+          />
+
         </View>
 
         <View style={styles.infoCard}>
@@ -53,6 +74,9 @@ const styles = StyleSheet.create({
   },
   banner: {
     marginTop: 20,
+    width: "100%",
+    height: 150,
+    resizeMode: "contain",
   },
   content: {
     flex: 1,
@@ -79,16 +103,9 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
+    display: "flex",
+    flexWrap: "wrap ",
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   cardTitle: {
     fontSize: 18,
