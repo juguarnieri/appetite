@@ -5,6 +5,7 @@ import {
   removeUser,
   validateLogin,
   saveNewUser,
+  saveLastUserEmail,
 } from "../utils/storage";
 import { useRouter, useSegments } from "expo-router";
 
@@ -50,6 +51,8 @@ export const AuthProvider = ({ children }) => {
       const result = await validateLogin(email, password);
 
       if (result.success) {
+        // salvar último email usado para facilitar re-login
+        await saveLastUserEmail(result.user.email);
         setUser(result.user);
         await saveUser(result.user);
         return { success: true };
@@ -78,6 +81,8 @@ export const AuthProvider = ({ children }) => {
         const { password: _, ...userWithoutPassword } = newUser;
         setUser(userWithoutPassword);
         await saveUser(userWithoutPassword);
+        // salvar último email usado após cadastro
+        await saveLastUserEmail(userWithoutPassword.email);
         return { success: true };
       }
 
@@ -90,6 +95,10 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
+      // antes de remover a sessão, salvar o email atual para prefill
+      if (user?.email) {
+        await saveLastUserEmail(user.email);
+      }
       await removeUser();
       setUser(null);
     } catch (error) {
