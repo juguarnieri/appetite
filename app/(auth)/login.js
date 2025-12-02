@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Image,  
 } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
+import { getLastUserEmail } from "../../utils/storage";
 import { Link } from "expo-router";
 
 export default function LoginScreen() {
@@ -19,6 +20,20 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const last = await getLastUserEmail();
+        if (mounted && last) setEmail(last);
+      } catch (e) {
+        // ignore
+      }
+    })();
+
+    return () => (mounted = false);
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !password) {
