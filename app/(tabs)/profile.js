@@ -8,9 +8,11 @@ import {
   Alert,
 } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigation } from "expo-router";
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const navigation = useNavigation();
 
   const handleLogout = () => {
     Alert.alert("Sair", "Tem certeza que deseja sair?", [
@@ -21,6 +23,10 @@ export default function ProfileScreen() {
         onPress: signOut,
       },
     ]);
+  };
+
+  const handleNavigateToListing = () => {
+    navigation.navigate("ListingScreen");
   };
 
   return (
@@ -54,6 +60,13 @@ export default function ProfileScreen() {
             Suas credenciais estão salvas no AsyncStorage
           </Text>
         </View>
+
+        <TouchableOpacity
+          style={styles.navigationButton}
+          onPress={handleNavigateToListing}
+        >
+          <Text style={styles.navigationText}>📋 Ir para Listagem</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Text style={styles.logoutText}>🔒 Sair da Conta</Text>
@@ -168,6 +181,19 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   logoutText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  navigationButton: {
+    width: "100%",
+    backgroundColor: "#007AFF",
+    borderRadius: 12,
+    padding: 18,
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  navigationText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",

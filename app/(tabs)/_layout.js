@@ -1,7 +1,7 @@
 import { Tabs } from "expo-router";
 import { Text } from "react-native";
 
-export default function TabsLayout() {
+export default function Layout() {
   return (
     <Tabs
       screenOptions={{
@@ -27,6 +27,20 @@ export default function TabsLayout() {
         options={{
           title: "Perfil",
           tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>👤</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="ListingScreen"
+        options={{
+          title: "Listagem",
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📋</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="DetailsScreen"
+        options={{
+          title: "Detalhes",
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🔍</Text>,
         }}
       />
     </Tabs>
