@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, CheckBox }
 import { useRouter, useLocalSearchParams } from "expo-router";
 import axios from "axios";
 
-
 export default function DetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
@@ -25,6 +24,13 @@ export default function DetailsScreen() {
     } catch (error) {
       console.error("Erro ao buscar receita:", error);
     }
+  };
+
+  const toggleCheckbox = (ingrediente) => {
+    setIngredientesSelecionados(prev => ({
+      ...prev,
+      [ingrediente]: !prev[ingrediente]
+    }));
   };
 
   useEffect(() => {
@@ -60,7 +66,6 @@ export default function DetailsScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.backButton}>{"< Voltar"}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalhes Da Receita</Text>
       </View>
       <Image
         source={
@@ -68,42 +73,54 @@ export default function DetailsScreen() {
             ? receita.imagem.startsWith("http")
               ? { uri: receita.imagem }
               : { uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${receita.imagem}` }
-            : require("../../assets/default-recipe.png") // Imagem padrão
+            : require("../../assets/default-recipe.png")
         }
         style={styles.image}
       />
-      <Text style={styles.title}>{receita.titulo}</Text>
-      <View style={styles.infoContainer}>
-        <Text style={styles.rating}>⭐ {receita.avaliacao || "N/A"}</Text>
-        <Text style={styles.time}>{receita.tempo_preparo} min</Text>
-        <Text style={styles.portions}>{receita.porcoes || "N/A"} Porções</Text>
+      <View style={styles.content}>
+        <Text style={styles.title}>{receita.titulo}</Text>
+        <View style={styles.infoContainer}>
+          <Text style={styles.rating}>⭐ {receita.avaliacao || "N/A"}</Text>
+          <Text style={styles.time}>{receita.tempo_preparo} min</Text>
+          <Text style={styles.portions}>{receita.porcoes || "N/A"} Porções</Text>
+        </View>
+        
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Ingredientes</Text>
+          {receita.ingredientes.split(",").map((ingrediente, index) => (
+            <View key={index} style={styles.ingredientContainer}>
+              <CheckBox
+                value={ingredientesSelecionados[ingrediente.trim()]}
+                onValueChange={() => toggleCheckbox(ingrediente.trim())}
+                style={styles.checkbox}
+              />
+              <Text style={[
+                styles.ingredient,
+                ingredientesSelecionados[ingrediente.trim()] && styles.ingredientChecked
+              ]}>
+                {ingrediente.trim()}
+              </Text>
+            </View>
+          ))}
+        </View>
+        
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Modo de Preparo</Text>
+          {receita.modo_preparo.split("\n").map((passo, index) => (
+            <Text key={index} style={styles.step}>
+              {index + 1}. {passo.trim()}
+            </Text>
+          ))}
+        </View>
+        
+        <TouchableOpacity style={styles.startButton}>
+          <Text style={styles.startButtonText}>INICIAR PREPARO</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.backToRecipesButton} onPress={() => router.push("/(tabs)/ListingScreen")}>
+          <Text style={styles.backToRecipesText}>VER + RECEITAS</Text>
+        </TouchableOpacity>
       </View>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Ingredientes</Text>
-        {receita.ingredientes.split(",").map((ingrediente, index) => (
-          <View key={index} style={styles.ingredientContainer}>
-            <CheckBox
-              value={ingredientesSelecionados[ingrediente.trim()]}
-              onValueChange={() => toggleCheckbox(ingrediente.trim())}
-            />
-            <Text style={styles.ingredient}>{ingrediente.trim()}</Text>
-          </View>
-        ))}
-      </View>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Modo de Preparo</Text>
-        {receita.modo_preparo.split("\n").map((passo, index) => (
-          <Text key={index} style={styles.step}>
-            {index + 1}. {passo.trim()}
-          </Text>
-        ))}
-      </View>
-      <TouchableOpacity style={styles.startButton}>
-        <Text style={styles.startButtonText}>INICIAR PREPARO</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.backToRecipesButton} onPress={() => router.push("/(tabs)/ListingScreen")}>
-        <Text style={styles.backToRecipesText}>VER + RECEITAS</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -111,8 +128,111 @@ export default function DetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFCFC",
+    backgroundColor: "#FFFFFF",
+  },
+  header: {
+    paddingTop: 50,
     paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+  backButton: {
+    fontSize: 16,
+    color: "#666666",
+  },
+  image: {
+    width: "100%",
+    height: 250,
+    resizeMode: "cover",
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#333333",
+    marginBottom: 10,
+  },
+  infoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 25,
+    gap: 15,
+  },
+  rating: {
+    fontSize: 16,
+    color: "#333333",
+    fontWeight: "500",
+  },
+  time: {
+    fontSize: 16,
+    color: "#666666",
+  },
+  portions: {
+    fontSize: 16,
+    color: "#666666",
+  },
+  section: {
+    marginBottom: 25,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333333",
+    marginBottom: 15,
+  },
+  ingredientContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    paddingHorizontal: 5,
+  },
+  checkbox: {
+    marginRight: 12,
+    transform: [{ scaleX: 1.2 }, { scaleY: 1.2 }],
+  },
+  ingredient: {
+    fontSize: 16,
+    color: "#333333",
+    flex: 1,
+  },
+  ingredientChecked: {
+    textDecorationLine: "line-through",
+    color: "#999999",
+  },
+  step: {
+    fontSize: 16,
+    color: "#333333",
+    lineHeight: 24,
+    marginBottom: 8,
+    paddingHorizontal: 5,
+  },
+  startButton: {
+    backgroundColor: "#2E7D32",
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  startButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  backToRecipesButton: {
+    backgroundColor: "transparent",
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: "center",
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: "#2E7D32",
+  },
+  backToRecipesText: {
+    color: "#2E7D32",
+    fontSize: 16,
+    fontWeight: "bold",
   },
   errorContainer: {
     flex: 1,
@@ -124,12 +244,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: "#FF0000",
     marginBottom: 16,
-  },
-  backButton: {
-    backgroundColor: "#2e7d32",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
   },
   backButtonText: {
     color: "#FFF",

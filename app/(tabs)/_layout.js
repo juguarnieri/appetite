@@ -1,46 +1,57 @@
-import { Tabs } from "expo-router";
-import { Text } from "react-native";
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-export default function Layout() {
+export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        tabBarActiveTintColor: '#2E7D32',
+        tabBarInactiveTintColor: '#666666',
         tabBarStyle: {
-          backgroundColor: "#fff",
-          borderTopWidth: 1,
-          borderTopColor: "#e0e0e0",
+          backgroundColor: '#FFFFFF',
+          borderTopColor: '#E0E0E0',
+          height: 80,
+          paddingBottom: 20,
+          paddingTop: 10,
         },
-        tabBarActiveTintColor: "#007AFF",
-        tabBarInactiveTintColor: "#888",
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '500',
+        },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
-        name="home"
+        name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🏠</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Perfil",
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>👤</Text>,
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="ListingScreen"
         options={{
-          title: "Listagem",
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>📋</Text>,
+          title: 'Buscar',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="search-outline" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="CreateRecipeScreen"
+        options={{
+          title: 'Adicionar',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="add-circle-outline" size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="DetailsScreen"
         options={{
-          title: "Detalhes",
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 24 }}>🔍</Text>,
+          href: null, // Remove da tab bar
         }}
       />
     </Tabs>
