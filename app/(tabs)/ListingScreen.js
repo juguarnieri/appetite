@@ -4,6 +4,7 @@ import axios from "axios";
 import Header from "../components/header";
 import { useRouter } from "expo-router";
 
+
 export default function ListingScreen() {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -31,7 +32,7 @@ export default function ListingScreen() {
   const handlePress = (item) => {
     router.push({
       pathname: "/(tabs)/DetailsScreen",
-      params: { id: item.id, titulo: item.titulo },
+      params: { id: item.id},
     });
   };
 
