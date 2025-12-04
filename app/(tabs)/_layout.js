@@ -22,11 +22,15 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? "home" : "home-outline"} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -34,8 +38,12 @@ export default function TabLayout() {
         name="ListingScreen"
         options={{
           title: 'Buscar',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="search-outline" size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? "search" : "search-outline"} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
@@ -43,15 +51,32 @@ export default function TabLayout() {
         name="CreateRecipeScreen"
         options={{
           title: 'Adicionar',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="add-circle-outline" size={24} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? "add-circle" : "add-circle-outline"} 
+              size={24} 
+              color={color} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? "person" : "person-outline"} 
+              size={24} 
+              color={color} 
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="DetailsScreen"
         options={{
-          href: null, // Remove da tab bar
+          href: null,
         }}
       />
     </Tabs>

@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, CheckBox } from "react-native";
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  Image, 
+  ScrollView, 
+  TouchableOpacity,
+  SafeAreaView,
+  Alert
+} from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 
 export default function DetailsScreen() {
@@ -9,11 +19,15 @@ export default function DetailsScreen() {
 
   const [receita, setReceita] = useState(null);
   const [ingredientesSelecionados, setIngredientesSelecionados] = useState({});
+  const [isFavorited, setIsFavorited] = useState(false);
 
   const getReceitaById = async () => {
     try {
       const response = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/receitas/${id}`);
       setReceita(response.data);
+      
+      // Se a receita tem um campo 'favorita', use-o
+      setIsFavorited(response.data.favorita || false);
 
       const ingredientes = response.data.ingredientes.split(",");
       const estadoInicial = {};
@@ -23,6 +37,40 @@ export default function DetailsScreen() {
       setIngredientesSelecionados(estadoInicial);
     } catch (error) {
       console.error("Erro ao buscar receita:", error);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    try {
+      const novoEstado = !isFavorited;
+      
+      // Atualiza o estado local imediatamente para feedback visual
+      setIsFavorited(novoEstado);
+      
+      // Chama a API para salvar no backend
+      await axios.patch(`${process.env.EXPO_PUBLIC_API_URL}/api/receitas/${id}/favorita`, {
+        favorita: novoEstado
+      });
+
+      // Mostra mensagem de feedback
+      Alert.alert(
+        "Sucesso!", 
+        novoEstado ? "Receita adicionada aos favoritos!" : "Receita removida dos favoritos!",
+        [{ text: "OK", style: "default" }],
+        { cancelable: true }
+      );
+      
+    } catch (error) {
+      console.error("Erro ao favoritar receita:", error);
+      
+      // Reverte o estado se der erro
+      setIsFavorited(!isFavorited);
+      
+      Alert.alert(
+        "Erro", 
+        "Não foi possível favoritar a receita. Tente novamente.",
+        [{ text: "OK", style: "default" }]
+      );
     }
   };
 
@@ -43,210 +91,361 @@ export default function DetailsScreen() {
 
   if (!id) {
     return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Erro: ID da receita não foi fornecido.</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>Voltar</Text>
+      <SafeAreaView style={styles.errorContainer}>
+        <Ionicons name="warning" size={60} color="#FF6B6B" />
+        <Text style={styles.errorText}>Receita não encontrada</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.errorButton}>
+          <Text style={styles.errorButtonText}>Voltar</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (!receita) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Carregando...</Text>
-      </View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <View style={styles.loadingContent}>
+          <Ionicons name="restaurant" size={50} color="#2E7D32" />
+          <Text style={styles.loadingText}>Carregando receita...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.backButton}>{"< Voltar"}</Text>
-        </TouchableOpacity>
-      </View>
-      <Image
-        source={
-          receita.imagem
-            ? receita.imagem.startsWith("http")
-              ? { uri: receita.imagem }
-              : { uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${receita.imagem}` }
-            : require("../../assets/default-recipe.png")
-        }
-        style={styles.image}
-      />
-      <View style={styles.content}>
-        <Text style={styles.title}>{receita.titulo}</Text>
-        <View style={styles.infoContainer}>
-          <Text style={styles.rating}>⭐ {receita.avaliacao || "N/A"}</Text>
-          <Text style={styles.time}>{receita.tempo_preparo} min</Text>
-          <Text style={styles.portions}>{receita.porcoes || "N/A"} Porções</Text>
-        </View>
+    <View style={styles.container}>
+      {/* Header com imagem de fundo */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={
+            receita.imagem
+              ? receita.imagem.startsWith("http")
+                ? { uri: receita.imagem }
+                : { uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${receita.imagem}` }
+              : require("../../assets/salgadoIcon.png")
+          }
+          style={styles.image}
+        />
         
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ingredientes</Text>
-          {receita.ingredientes.split(",").map((ingrediente, index) => (
-            <View key={index} style={styles.ingredientContainer}>
-              <CheckBox
-                value={ingredientesSelecionados[ingrediente.trim()]}
-                onValueChange={() => toggleCheckbox(ingrediente.trim())}
-                style={styles.checkbox}
-              />
-              <Text style={[
-                styles.ingredient,
-                ingredientesSelecionados[ingrediente.trim()] && styles.ingredientChecked
-              ]}>
-                {ingrediente.trim()}
-              </Text>
+        {/* Overlay com botão voltar */}
+        <View style={styles.overlay}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.favoriteButton} onPress={toggleFavorite}>
+            <Ionicons 
+              name={isFavorited ? "heart" : "heart-outline"} 
+              size={24} 
+              color={isFavorited ? "#FF6B6B" : "#FFFFFF"} 
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Title e Info */}
+        <View style={styles.titleSection}>
+          <Text style={styles.title}>{receita.titulo}</Text>
+          <Text style={styles.description}>{receita.descricao}</Text>
+          
+          <View style={styles.infoContainer}>
+            <View style={styles.infoItem}>
+              <Ionicons name="star" size={18} color="#FFD700" />
+              <Text style={styles.infoText}>{receita.avaliacao || "4.5"}</Text>
             </View>
-          ))}
+            <View style={styles.infoItem}>
+              <Ionicons name="time-outline" size={18} color="#666" />
+              <Text style={styles.infoText}>{receita.tempo_preparo} min</Text>
+            </View>
+            <View style={styles.infoItem}>
+              <Ionicons name="people-outline" size={18} color="#666" />
+              <Text style={styles.infoText}>{receita.porcoes || "4"} porções</Text>
+            </View>
+          </View>
         </View>
         
+        {/* Ingredientes */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Modo de Preparo</Text>
-          {receita.modo_preparo.split("\n").map((passo, index) => (
-            <Text key={index} style={styles.step}>
-              {index + 1}. {passo.trim()}
-            </Text>
-          ))}
+          <View style={styles.sectionHeader}>
+            <Ionicons name="list-outline" size={24} color="#2E7D32" />
+            <Text style={styles.sectionTitle}>Ingredientes</Text>
+          </View>
+          
+          <View style={styles.ingredientsContainer}>
+            {receita.ingredientes.split(",").map((ingrediente, index) => (
+              <TouchableOpacity 
+                key={index} 
+                style={styles.ingredientItem}
+                onPress={() => toggleCheckbox(ingrediente.trim())}
+              >
+                <View style={styles.checkboxContainer}>
+                  {ingredientesSelecionados[ingrediente.trim()] ? (
+                    <Ionicons name="checkmark-circle" size={24} color="#2E7D32" />
+                  ) : (
+                    <Ionicons name="ellipse-outline" size={24} color="#CCC" />
+                  )}
+                </View>
+                <Text style={[
+                  styles.ingredient,
+                  ingredientesSelecionados[ingrediente.trim()] && styles.ingredientChecked
+                ]}>
+                  {ingrediente.trim()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
         
-        <TouchableOpacity style={styles.startButton}>
-          <Text style={styles.startButtonText}>INICIAR PREPARO</Text>
-        </TouchableOpacity>
+        {/* Modo de Preparo */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="book-outline" size={24} color="#2E7D32" />
+            <Text style={styles.sectionTitle}>Modo de Preparo</Text>
+          </View>
+          
+          <View style={styles.stepsContainer}>
+            {receita.modo_preparo.split("\n").map((passo, index) => (
+              passo.trim() && (
+                <View key={index} style={styles.stepItem}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.stepText}>{passo.trim()}</Text>
+                </View>
+              )
+            ))}
+          </View>
+        </View>
         
-        <TouchableOpacity style={styles.backToRecipesButton} onPress={() => router.push("/(tabs)/ListingScreen")}>
-          <Text style={styles.backToRecipesText}>VER + RECEITAS</Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        {/* Botão Ver mais receitas */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity 
+            style={styles.moreRecipesButton} 
+            onPress={() => router.push("/(tabs)/ListingScreen")}
+          >
+            <Ionicons name="restaurant-outline" size={20} color="#2E7D32" />
+            <Text style={styles.moreRecipesText}>VER MAIS RECEITAS</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFFCFC",
   },
-  header: {
-    paddingTop: 50,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-  },
-  backButton: {
-    fontSize: 16,
-    color: "#666666",
+  imageContainer: {
+    position: "relative",
+    height: 280,
   },
   image: {
     width: "100%",
-    height: 250,
+    height: "100%",
     resizeMode: "cover",
   },
-  content: {
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    paddingTop: 50,
     paddingHorizontal: 20,
-    paddingTop: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  favoriteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  content: {
+    flex: 1,
+    backgroundColor: "#FFFCFC",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -20,
+  },
+  titleSection: {
+    paddingHorizontal: 20,
+    paddingTop: 25,
+    paddingBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "bold",
-    color: "#333333",
-    marginBottom: 10,
+    color: "#333",
+    marginBottom: 8,
+    lineHeight: 32,
+  },
+  description: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 20,
+    lineHeight: 22,
   },
   infoContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 25,
-    gap: 15,
+    justifyContent: "space-around",
+    backgroundColor: "#F8F9FA",
+    borderRadius: 12,
+    paddingVertical: 15,
   },
-  rating: {
-    fontSize: 16,
-    color: "#333333",
-    fontWeight: "500",
-  },
-  time: {
-    fontSize: 16,
-    color: "#666666",
-  },
-  portions: {
-    fontSize: 16,
-    color: "#666666",
-  },
-  section: {
-    marginBottom: 25,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333333",
-    marginBottom: 15,
-  },
-  ingredientContainer: {
+  infoItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
-    paddingHorizontal: 5,
   },
-  checkbox: {
-    marginRight: 12,
-    transform: [{ scaleX: 1.2 }, { scaleY: 1.2 }],
+  infoText: {
+    fontSize: 14,
+    color: "#333",
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+  section: {
+    marginBottom: 30,
+    paddingHorizontal: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+    marginLeft: 8,
+  },
+  ingredientsContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  ingredientItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  checkboxContainer: {
+    marginRight: 15,
   },
   ingredient: {
     fontSize: 16,
-    color: "#333333",
+    color: "#333",
     flex: 1,
+    lineHeight: 20,
   },
   ingredientChecked: {
     textDecorationLine: "line-through",
-    color: "#999999",
+    color: "#999",
   },
-  step: {
-    fontSize: 16,
-    color: "#333333",
-    lineHeight: 24,
-    marginBottom: 8,
-    paddingHorizontal: 5,
+  stepsContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  startButton: {
+  stepItem: {
+    flexDirection: "row",
+    marginBottom: 16,
+    alignItems: "flex-start",
+  },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: "#2E7D32",
-    paddingVertical: 15,
-    borderRadius: 8,
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 15,
+    marginRight: 15,
+    marginTop: 2,
   },
-  startButtonText: {
+  stepNumberText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold",
   },
-  backToRecipesButton: {
-    backgroundColor: "transparent",
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 30,
-    borderWidth: 1,
-    borderColor: "#2E7D32",
+  stepText: {
+    flex: 1,
+    fontSize: 16,
+    color: "#333",
+    lineHeight: 24,
   },
-  backToRecipesText: {
+  actionsContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+  },
+  moreRecipesButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 2,
+    borderColor: "#2E7D32",
+    borderRadius: 12,
+    paddingVertical: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  moreRecipesText: {
     color: "#2E7D32",
     fontSize: 16,
     fontWeight: "bold",
+    marginLeft: 8,
+    letterSpacing: 0.5,
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#FFFCFC",
+    paddingHorizontal: 40,
   },
   errorText: {
-    fontSize: 18,
-    color: "#FF0000",
-    marginBottom: 16,
+    fontSize: 20,
+    color: "#333",
+    marginVertical: 20,
+    textAlign: "center",
   },
-  backButtonText: {
-    color: "#FFF",
+  errorButton: {
+    backgroundColor: "#2E7D32",
+    paddingHorizontal: 30,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  errorButtonText: {
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "bold",
   },
@@ -254,9 +453,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#FFFCFC",
+  },
+  loadingContent: {
+    alignItems: "center",
   },
   loadingText: {
     fontSize: 18,
     color: "#333",
+    marginTop: 15,
+    fontWeight: "500",
   },
 });

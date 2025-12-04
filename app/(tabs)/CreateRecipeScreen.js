@@ -10,6 +10,7 @@ import {
   Alert
 } from "react-native";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 
 export default function CreateRecipeScreen() {
@@ -22,15 +23,28 @@ export default function CreateRecipeScreen() {
   const [imagem, setImagem] = useState(null);
 
   const selecionarImagem = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 1,
-    });
+    try {
+      // Solicitar permissões
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert("Erro", "Permissão para acessar a galeria é necessária!");
+        return;
+      }
 
-    if (!result.canceled) {
-      setImagem(result.assets[0].uri);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setImagem(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Erro ao selecionar imagem:", error);
+      Alert.alert("Erro", "Não foi possível selecionar a imagem.");
     }
   };
 
@@ -67,11 +81,54 @@ export default function CreateRecipeScreen() {
       return;
     }
 
-    const ingredientesString = ingredientes.join(", ");
+    try {
+      console.log('Tentando enviar para:', `${process.env.EXPO_PUBLIC_API_URL}/api/receitas`);
+      
+      const ingredientesString = ingredientes.join(", ");
+      
+      // Primeiro, vamos testar com um objeto simples em vez de FormData
+      const receitaData = {
+        titulo,
+        descricao,
+        ingredientes: ingredientesString,
+        modo_preparo: modoPreparo,
+        tempo_preparo: "30",
+        categoria: "Geral",
+        usuario_id: "1"
+      };
 
-    // Aqui você implementaria a lógica para salvar a receita
-    Alert.alert("Sucesso", "Receita criada com sucesso!");
-    router.back();
+      console.log('Dados a serem enviados:', receitaData);
+
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/receitas`,
+        receitaData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log('Resposta da API:', response.data);
+      Alert.alert("Sucesso", "Receita criada com sucesso!");
+      
+      // Limpar campos
+      setTitulo("");
+      setDescricao("");
+      setIngredientes([]);
+      setModoPreparo("");
+      setImagem(null);
+      
+    } catch (error) {
+      console.error("Erro detalhado:", error.response?.data || error.message);
+      console.error("Status:", error.response?.status);
+      
+      if (error.response?.status === 404) {
+        Alert.alert("Erro", "Endpoint não encontrado. Verifique se a API está rodando.");
+      } else {
+        Alert.alert("Erro", "Não foi possível criar a receita. Tente novamente.");
+      }
+    }
   };
 
   return (

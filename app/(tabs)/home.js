@@ -1,20 +1,73 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, Image, TextInput } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
+import { useRouter } from 'expo-router';
 import Header from "../components/header";
 import NavComidas from "../components/navComidas";
 import RecipeCard from "../components/RecipeCard";
+import axios from "axios";
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const [popularRecipes, setPopularRecipes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  const popularRecipes = [
-    { id: 1, title: "CupCake", time: "20 min" },
-    { id: 2, title: "CupCake", time: "20 min" },
-  ];
+  // Buscar receitas com ID par da sua API
+  useEffect(() => {
+    fetchRecipesWithEvenIds();
+  }, []);
+
+  const fetchRecipesWithEvenIds = async () => {
+    try {
+      setLoading(true);
+      console.log('Buscando receitas da API:', `${process.env.EXPO_PUBLIC_API_URL}/api/receitas`);
+      
+      const response = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/receitas`);
+      console.log('Resposta da API:', response.data);
+      
+      const receitas = response.data;
+      
+      // Filtrar apenas receitas com ID par
+      const evenIdRecipes = receitas.filter(recipe => recipe.id % 2 === 0);
+      console.log('Receitas com ID par:', evenIdRecipes);
+      
+      // Mapear para o formato esperado pelo RecipeCard
+      const formattedRecipes = evenIdRecipes.map(recipe => ({
+        id: recipe.id,
+        title: recipe.titulo,
+        time: `${recipe.tempo_preparo} min`,
+        image: recipe.imagem 
+          ? recipe.imagem.startsWith("http")
+            ? recipe.imagem
+            : `${process.env.EXPO_PUBLIC_API_URL}/uploads/${recipe.imagem}`
+          : null
+      }));
+      
+      setPopularRecipes(formattedRecipes);
+      console.log('Receitas formatadas para exibição:', formattedRecipes);
+    } catch (error) {
+      console.error('Erro detalhado ao buscar receitas:', error.response?.data || error.message);
+      // Fallback para dados estáticos em caso de erro
+      setPopularRecipes([
+        { id: 2, title: "CupCake", time: "20 min", image: null },
+        { id: 4, title: "Brownie", time: "30 min", image: null },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRecipePress = (recipeId) => {
-    console.log('Receita pressionada:', recipeId);
+    console.log('Navegando para receita ID:', recipeId);
+    // Navegar para a tela de detalhes passando o ID da receita
+    router.push(`/DetailsScreen?id=${recipeId}`);
+  };
+
+  const handleCategoryPress = (categoria) => {
+    console.log('Navegando para categoria:', categoria);
+    // Navegar para o ListingScreen com filtro de categoria
+    router.push(`/(tabs)/ListingScreen?categoria=${categoria}`);
   };
 
   return (
@@ -39,26 +92,31 @@ export default function HomeScreen() {
             icon={require('../../assets/doceIcon.png')}
             navTitulo="DOCES"
             backgroundColor="#FFE5E5"
+            onPress={() => handleCategoryPress('Sobremesas')}
           />
           <NavComidas
             icon={require('../../assets/salgadoIcon.png')}
             navTitulo="SALGADOS"
             backgroundColor="#FFF5E1"
+            onPress={() => handleCategoryPress('Lanches')}
           />
           <NavComidas
             icon={require('../../assets/veganIcon.png')}
             navTitulo="VEGETARIANOS"
             backgroundColor="#E8F5E9"
+            onPress={() => handleCategoryPress('Vegetariano')}
           />
           <NavComidas
             icon={require('../../assets/saudavelIcon.png')}
             navTitulo="DIET"
             backgroundColor="#E3F2FD"
+            onPress={() => handleCategoryPress('Vegetariano')}
           />
           <NavComidas
             icon={require('../../assets/drinkIcon.png')}
             navTitulo="DRINKS"
             backgroundColor="#F3E5F5"
+            onPress={() => handleCategoryPress('Bebidas')}
           />
         </ScrollView>
 
@@ -72,23 +130,31 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.popularSection}>
-          <Text style={styles.sectionTitle}>RECEITAS POPULARES</Text>
+          <Text style={styles.sectionTitle}>RECEITAS POPULARES </Text>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.recipeScroll}
-          >
-            {popularRecipes.map((recipe) => (
-              <RecipeCard
-                key={recipe.id}
-                title={recipe.title}
-                time={recipe.time}
-                image={recipe.image} 
-                onPress={() => handleRecipePress(recipe.id)}
-              />
-            ))}
-          </ScrollView>
+          {loading ? (
+            <Text style={styles.loadingText}>Carregando receitas...</Text>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.recipeScroll}
+            >
+              {popularRecipes.length > 0 ? (
+                popularRecipes.map((recipe) => (
+                  <RecipeCard
+                    key={recipe.id}
+                    title={recipe.title}
+                    time={recipe.time}
+                    image={recipe.image} 
+                    onPress={() => handleRecipePress(recipe.id)}
+                  />
+                ))
+              ) : (
+                <Text style={styles.noRecipesText}>Nenhuma receita encontrada</Text>
+              )}
+            </ScrollView>
+          )}
         </View>
       </View>
     </ScrollView>
@@ -192,5 +258,17 @@ const styles = StyleSheet.create({
   recipeScroll: {
     marginHorizontal: -20,
     paddingHorizontal: 20,
+  },
+  loadingText: {
+    textAlign: "center",
+    color: "#666",
+    fontSize: 16,
+    paddingVertical: 20,
+  },
+  noRecipesText: {
+    textAlign: "center",
+    color: "#999",
+    fontSize: 16,
+    paddingVertical: 20,
   },
 });

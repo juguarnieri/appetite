@@ -8,11 +8,12 @@ import {
   Alert,
 } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigation } from "expo-router";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
-  const navigation = useNavigation();
+  const router = useRouter();
 
   const handleLogout = () => {
     Alert.alert("Sair", "Tem certeza que deseja sair?", [
@@ -26,185 +27,289 @@ export default function ProfileScreen() {
   };
 
   const handleNavigateToListing = () => {
-    navigation.navigate("ListingScreen");
+    router.push("/(tabs)/ListingScreen");
+  };
+
+  const handleNavigateToCreate = () => {
+    router.push("/(tabs)/CreateRecipeScreen");
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.avatarContainer}>
-          <Text style={styles.avatar}>👤</Text>
-        </View>
-
-        <Text style={styles.name}>{user?.name}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
-
-        <View style={styles.infoCard}>
-          <Text style={styles.infoLabel}>ID do Usuário</Text>
-          <Text style={styles.infoValue}>{user?.id}</Text>
-        </View>
-
-        <View style={styles.infoCard}>
-          <Text style={styles.infoLabel}>Membro desde</Text>
-          <Text style={styles.infoValue}>
-            {user?.createdAt
-              ? new Date(user.createdAt).toLocaleDateString("pt-BR")
-              : "N/A"}
-          </Text>
-        </View>
-
-        <View style={styles.statusCard}>
-          <Text style={styles.statusEmoji}>✅</Text>
-          <Text style={styles.statusText}>Conta Ativa</Text>
-          <Text style={styles.statusDescription}>
-            Suas credenciais estão salvas no AsyncStorage
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          style={styles.navigationButton}
-          onPress={handleNavigateToListing}
-        >
-          <Text style={styles.navigationText}>📋 Ir para Listagem</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutText}>🔒 Sair da Conta</Text>
-        </TouchableOpacity>
-
-        <View style={styles.versionCard}>
-          <Text style={styles.versionText}>
-            Versão 2.0 - Com Expo Router + AsyncStorage
-          </Text>
-        </View>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Meu Perfil</Text>
       </View>
-    </ScrollView>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Profile Section */}
+        <View style={styles.profileSection}>
+          <View style={styles.avatarContainer}>
+            <Ionicons name="person" size={50} color="#FFFFFF" />
+          </View>
+          <Text style={styles.name}>{user?.name || "Usuário"}</Text>
+          <Text style={styles.email}>{user?.email}</Text>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.actionsSection}>
+          <Text style={styles.sectionTitle}>Ações Rápidas</Text>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleNavigateToCreate}
+          >
+            <View style={styles.actionIconContainer}>
+              <Ionicons name="add-circle" size={24} color="#2E7D32" />
+            </View>
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Criar Nova Receita</Text>
+              <Text style={styles.actionSubtitle}>
+                Compartilhe sua criação culinária
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleNavigateToListing}
+          >
+            <View style={styles.actionIconContainer}>
+              <Ionicons name="search" size={24} color="#2E7D32" />
+            </View>
+            <View style={styles.actionTextContainer}>
+              <Text style={styles.actionTitle}>Explorar Receitas</Text>
+              <Text style={styles.actionSubtitle}>
+                Descubra novas receitas incríveis
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#666" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Account Info */}
+        <View style={styles.infoSection}>
+          <Text style={styles.sectionTitle}>Informações da Conta</Text>
+
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>ID do Usuário</Text>
+              <Text style={styles.infoValue}>{user?.id || "N/A"}</Text>
+            </View>
+          </View>
+
+          <View style={styles.infoCard}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Membro desde</Text>
+              <Text style={styles.infoValue}>
+                {user?.createdAt
+                  ? new Date(user.createdAt).toLocaleDateString("pt-BR")
+                  : "Dezembro 2024"}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.statusCard}>
+            <Ionicons name="checkmark-circle" size={24} color="#2E7D32" />
+            <View style={styles.statusTextContainer}>
+              <Text style={styles.statusText}>Conta Ativa</Text>
+              <Text style={styles.statusDescription}>
+                Suas credenciais estão salvas com segurança
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
+          <Text style={styles.logoutText}>Sair da Conta</Text>
+        </TouchableOpacity>
+
+        {/* Version Info */}
+        <View style={styles.versionContainer}>
+          <Text style={styles.versionText}>Appetite v2.0 - Feito com ❤️</Text>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#FFFCFC",
+  },
+  header: {
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: "#FFFFFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#2E7D32",
+    textAlign: "center",
   },
   content: {
     flex: 1,
-    alignItems: "center",
-    padding: 20,
-    paddingTop: 60,
+    paddingHorizontal: 20,
   },
-  avatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#007AFF",
-    justifyContent: "center",
+  profileSection: {
     alignItems: "center",
-    marginBottom: 20,
+    paddingVertical: 30,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginTop: 20,
+    marginBottom: 25,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  avatar: {
-    fontSize: 50,
+  avatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#2E7D32",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 15,
   },
   name: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#333",
-    marginBottom: 8,
+    marginBottom: 5,
   },
   email: {
     fontSize: 16,
     color: "#666",
-    marginBottom: 30,
+  },
+  actionsSection: {
+    marginBottom: 25,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 15,
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  actionIconContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#E8F5E9",
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 15,
+  },
+  actionTextContainer: {
+    flex: 1,
+  },
+  actionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 2,
+  },
+  actionSubtitle: {
+    fontSize: 14,
+    color: "#666",
+  },
+  infoSection: {
+    marginBottom: 25,
   },
   infoCard: {
-    width: "100%",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: "#ddd",
+    padding: 16,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   infoLabel: {
-    fontSize: 12,
-    color: "#888",
-    marginBottom: 5,
-    textTransform: "uppercase",
-    fontWeight: "600",
+    fontSize: 16,
+    color: "#666",
   },
   infoValue: {
     fontSize: 16,
+    fontWeight: "600",
     color: "#333",
-    fontWeight: "500",
   },
   statusCard: {
-    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#E8F5E9",
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 30,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#81C784",
-  },
-  statusEmoji: {
-    fontSize: 40,
+    padding: 16,
     marginBottom: 10,
   },
+  statusTextContainer: {
+    flex: 1,
+    marginLeft: 12,
+  },
   statusText: {
-    fontSize: 18,
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: "600",
     color: "#2E7D32",
-    marginBottom: 5,
+    marginBottom: 2,
   },
   statusDescription: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#388E3C",
-    textAlign: "center",
   },
   logoutButton: {
-    width: "100%",
-    backgroundColor: "#FF3B30",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FF4444",
     borderRadius: 12,
     padding: 18,
-    alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    marginBottom: 30,
+    shadowColor: "#FF4444",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 5,
   },
   logoutText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "bold",
+    marginLeft: 8,
   },
-  navigationButton: {
-    width: "100%",
-    backgroundColor: "#007AFF",
-    borderRadius: 12,
-    padding: 18,
+  versionContainer: {
     alignItems: "center",
-    marginBottom: 20,
-  },
-  navigationText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  versionCard: {
-    width: "100%",
-    padding: 15,
-    alignItems: "center",
+    paddingBottom: 20,
   },
   versionText: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#999",
     textAlign: "center",
   },
