@@ -15,33 +15,33 @@ export default function HomeScreen() {
         <Text style={styles.title}>Bem-vindo(a)!</Text>
         <Text style={styles.userName}>{user?.name}</Text>
 
-        <View style={styles.card}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.navContainer}
+          contentContainerStyle={styles.navContent}
+        >
           <NavComidas
             icon={require('../../assets/doceIcon.png')}
-            navTitulo="Doce"
+            navTitulo="DOCES"
           />
-
           <NavComidas
             icon={require('../../assets/hamburIcon.png')}
-            navTitulo="Hambúrguer"
+            navTitulo="SALGADOS"
           />
-
           <NavComidas
             icon={require('../../assets/veganIcon.png')}
-            navTitulo="Vegano"
+            navTitulo="VEGETARIANOS"
           />
-
           <NavComidas
             icon={require('../../assets/macaIcon.png')}
-            navTitulo="Maçã"
+            navTitulo="DIET"
           />
-
           <NavComidas
             icon={require('../../assets/drinkIcon.png')}
-            navTitulo="Bebidas"
+            navTitulo="DRINKS"
           />
-
-        </View>
+        </ScrollView>
 
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>🎯 Recursos Implementados:</Text>
@@ -101,11 +101,12 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     textAlign: "center",
   },
-  card: {
-    backgroundColor: "#fff",
-    display: "flex",
-    flexWrap: "wrap ",
+  navContainer: {
     marginBottom: 20,
+  },
+  navContent: {
+    paddingHorizontal: 10,
+    paddingVertical: 15,
   },
   cardTitle: {
     fontSize: 18,
