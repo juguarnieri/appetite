@@ -155,7 +155,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   logo: {
-    fontSize: 60,
+    width: 180,
+    height: 100,
+    resizeMode: "contain",
+    marginBottom: 20,
   },
   title: {
     fontSize: 25,

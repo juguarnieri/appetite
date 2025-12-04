@@ -1,22 +1,36 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, Image } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Image, TextInput } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import Header from "../components/header";
 import NavComidas from "../components/navComidas";
+import RecipeCard from "../components/RecipeCard";
 
 export default function HomeScreen() {
   const { user } = useAuth();
+
+  const popularRecipes = [
+    { id: 1, title: "CupCake", time: "20 min" },
+    { id: 2, title: "CupCake", time: "20 min" },
+  ];
+
+  const handleRecipePress = (recipeId) => {
+    console.log('Receita pressionada:', recipeId);
+  };
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         <Header />
-        <Image source={require('../../assets/bannerAppetite.png')} style={styles.banner} />
-        <Text style={styles.title}>Bem-vindo(a)!</Text>
-        <Text style={styles.userName}>{user?.name}</Text>
 
-        <ScrollView 
-          horizontal 
+        <View style={styles.bannerContainer}>
+          <Image source={require('../../assets/bannerAppetite.png')} style={styles.banner} />
+          <View style={styles.bannerOverlay}>
+            <Text style={styles.bannerText}>Receitas da Semana</Text>
+          </View>
+        </View>
+
+        <ScrollView
+          horizontal
           showsHorizontalScrollIndicator={false}
           style={styles.navContainer}
           contentContainerStyle={styles.navContent}
@@ -24,43 +38,57 @@ export default function HomeScreen() {
           <NavComidas
             icon={require('../../assets/doceIcon.png')}
             navTitulo="DOCES"
+            backgroundColor="#FFE5E5"
           />
           <NavComidas
-            icon={require('../../assets/hamburIcon.png')}
+            icon={require('../../assets/salgadoIcon.png')}
             navTitulo="SALGADOS"
+            backgroundColor="#FFF5E1"
           />
           <NavComidas
             icon={require('../../assets/veganIcon.png')}
             navTitulo="VEGETARIANOS"
+            backgroundColor="#E8F5E9"
           />
           <NavComidas
-            icon={require('../../assets/macaIcon.png')}
+            icon={require('../../assets/saudavelIcon.png')}
             navTitulo="DIET"
+            backgroundColor="#E3F2FD"
           />
           <NavComidas
             icon={require('../../assets/drinkIcon.png')}
             navTitulo="DRINKS"
+            backgroundColor="#F3E5F5"
           />
         </ScrollView>
 
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>🎯 Recursos Implementados:</Text>
-          <Text style={styles.infoItem}>✓ Expo Router (navegação moderna)</Text>
-          <Text style={styles.infoItem}>
-            ✓ AsyncStorage (persistência de dados)
-          </Text>
-          <Text style={styles.infoItem}>✓ Rotas privadas automáticas</Text>
-          <Text style={styles.infoItem}>✓ Cadastro de usuários</Text>
-          <Text style={styles.infoItem}>✓ Login persistente</Text>
-          <Text style={styles.infoItem}>✓ Validação de dados</Text>
+        <View style={styles.searchContainer}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar Receitas"
+            placeholderTextColor="#999"
+          />
         </View>
 
-        <View style={styles.tipCard}>
-          <Text style={styles.tipTitle}>💡 Dica:</Text>
-          <Text style={styles.tipText}>
-            Seus dados ficam salvos mesmo se você fechar o app! Use o botão
-            "Sair" no perfil para fazer logout.
-          </Text>
+        <View style={styles.popularSection}>
+          <Text style={styles.sectionTitle}>RECEITAS POPULARES</Text>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.recipeScroll}
+          >
+            {popularRecipes.map((recipe) => (
+              <RecipeCard
+                key={recipe.id}
+                title={recipe.title}
+                time={recipe.time}
+                image={recipe.image} 
+                onPress={() => handleRecipePress(recipe.id)}
+              />
+            ))}
+          </ScrollView>
         </View>
       </View>
     </ScrollView>
@@ -72,11 +100,33 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFCFC",
   },
-  banner: {
-    marginTop: 20,
+  bannerContainer: {
     width: "100%",
-    height: 150,
-    resizeMode: "contain",
+    height: 200,
+    position: "relative",
+    marginBottom: 20,
+  },
+  banner: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  bannerOverlay: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 5,
+  },
+  bannerText: {
+    color: "#FFFFFF",
+    fontSize: 24,
+    fontWeight: "bold",
+    textShadowColor: "rgba(0, 0, 0, 0.75)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   content: {
     flex: 1,
@@ -108,55 +158,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 15,
   },
-  cardTitle: {
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F5E9",
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    marginHorizontal: 20,
+    marginBottom: 25,
+  },
+  searchIcon: {
+    fontSize: 20,
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#333",
+    outlineStyle: "none",
+  },
+  popularSection: {
+    marginBottom: 25,
+    paddingHorizontal: 20,
+  },
+  sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  cardText: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  infoCard: {
-    backgroundColor: "#E3F2FD",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#90CAF9",
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#1976D2",
+    color: "#000",
     marginBottom: 15,
+    letterSpacing: 0.5,
   },
-  infoItem: {
-    fontSize: 14,
-    color: "#1565C0",
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  tipCard: {
-    backgroundColor: "#FFF3E0",
-    borderRadius: 12,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#FFB74D",
-  },
-  tipTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#F57C00",
-    marginBottom: 10,
-  },
-  tipText: {
-    fontSize: 14,
-    color: "#E65100",
-    lineHeight: 20,
+  recipeScroll: {
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
   },
 });
