@@ -127,7 +127,10 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   logo: {
-    fontSize: 80,
+    width: 180,
+    height: 100,
+    resizeMode: "contain",
+    marginBottom: 20,
   },
   title: {
     fontSize: 25,
