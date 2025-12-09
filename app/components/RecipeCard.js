@@ -5,7 +5,14 @@ export default function RecipeCard({ title, time, image, onPress }) {
         <TouchableOpacity style={styles.recipeCard} onPress={onPress} activeOpacity={0.7}>
             <View style={styles.recipeImageContainer}>
                 {image ? (
-                    <Image source={image} style={styles.recipeImage} />
+                    <Image
+                        source={
+                            typeof image === "string"
+                                ? { uri: image }
+                                : image
+                        }
+                        style={styles.recipeImage}
+                    />
                 ) : (
                     <Text style={styles.recipeEmoji}>🧁</Text>
                 )}
@@ -23,7 +30,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#FFF",
         borderRadius: 12,
         overflow: "hidden",
-        shadowColor: "#000",
+        shadowColor: "#bdadadff",
         shadowOffset: {
             width: 0,
             height: 2,

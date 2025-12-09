@@ -6,12 +6,15 @@ import {
   Image, 
   ScrollView, 
   TouchableOpacity,
-  SafeAreaView,
   Alert
 } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
+
+const USUARIO_ID = 1;
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function DetailsScreen() {
   const router = useRouter();
@@ -19,15 +22,17 @@ export default function DetailsScreen() {
 
   const [receita, setReceita] = useState(null);
   const [ingredientesSelecionados, setIngredientesSelecionados] = useState({});
-  const [isFavorited, setIsFavorited] = useState(false);
+  const [isFavorita, setIsFavorita] = useState(false);
+  const [avaliacao, setAvaliacao] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   const getReceitaById = async () => {
     try {
-      const response = await axios.get(`${process.env.EXPO_PUBLIC_API_URL}/api/receitas/${id}`);
+      setLoading(true);
+      const response = await axios.get(`${API_URL}/api/receitas/${id}`);
       setReceita(response.data);
-      
-      // Se a receita tem um campo 'favorita', use-o
-      setIsFavorited(response.data.favorita || false);
+      setIsFavorita(response.data.favorita || false);
+      setAvaliacao(response.data.avaliacao || 0);
 
       const ingredientes = response.data.ingredientes.split(",");
       const estadoInicial = {};
@@ -37,40 +42,35 @@ export default function DetailsScreen() {
       setIngredientesSelecionados(estadoInicial);
     } catch (error) {
       console.error("Erro ao buscar receita:", error);
+      Alert.alert('Erro', 'Erro ao carregar receita');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const toggleFavorite = async () => {
-    try {
-      const novoEstado = !isFavorited;
-      
-      // Atualiza o estado local imediatamente para feedback visual
-      setIsFavorited(novoEstado);
-      
-      // Chama a API para salvar no backend
-      await axios.patch(`${process.env.EXPO_PUBLIC_API_URL}/api/receitas/${id}/favorita`, {
-        favorita: novoEstado
-      });
+  useFocusEffect(
+    React.useCallback(() => {
+      if (id) {
+        getReceitaById();
+      }
+    }, [id])
+  );
 
-      // Mostra mensagem de feedback
-      Alert.alert(
-        "Sucesso!", 
-        novoEstado ? "Receita adicionada aos favoritos!" : "Receita removida dos favoritos!",
-        [{ text: "OK", style: "default" }],
-        { cancelable: true }
+  const toggleFavorita = async (receitaId, novoStatus) => {
+    try {
+      console.log(`❤️ Toggle favorita - ID: ${receitaId}, Novo status: ${novoStatus}`);
+      
+      const response = await axios.put(
+        `${API_URL}/api/receitas/${receitaId}/favorita`,
+        { favorita: novoStatus }
       );
       
+      console.log('✅ Sucesso:', response.data);
+      setIsFavorita(novoStatus);
     } catch (error) {
-      console.error("Erro ao favoritar receita:", error);
-      
-      // Reverte o estado se der erro
-      setIsFavorited(!isFavorited);
-      
-      Alert.alert(
-        "Erro", 
-        "Não foi possível favoritar a receita. Tente novamente.",
-        [{ text: "OK", style: "default" }]
-      );
+      console.error('❌ Erro ao toggar favorita:', error.response?.data || error.message);
+      Alert.alert('Erro', error.response?.data?.error || 'Erro ao atualizar');
+      setIsFavorita(!novoStatus);
     }
   };
 
@@ -81,13 +81,36 @@ export default function DetailsScreen() {
     }));
   };
 
-  useEffect(() => {
-    if (id) {
-      getReceitaById();
-    } else {
-      console.error("ID da receita não foi fornecido.");
-    }
-  }, [id]);
+  const deletarReceita = async () => {
+    Alert.alert(
+      'Deletar Receita',
+      'Tem certeza que deseja deletar esta receita?',
+      [
+        {
+          text: 'Cancelar',
+          onPress: () => {},
+          style: 'cancel'
+        },
+        {
+          text: 'Deletar',
+          onPress: async () => {
+            try {
+              await axios.delete(
+                `${API_URL}/api/receitas/${id}`,
+                { data: { usuario_id: USUARIO_ID } }
+              );
+              Alert.alert('Sucesso', 'Receita deletada com sucesso!');
+              router.push('/(tabs)/home');
+            } catch (error) {
+              console.error('Erro ao deletar:', error);
+              Alert.alert('Erro', error.response?.data?.error || 'Você não tem permissão para deletar esta receita');
+            }
+          },
+          style: 'destructive'
+        }
+      ]
+    );
+  };
 
   if (!id) {
     return (
@@ -101,7 +124,7 @@ export default function DetailsScreen() {
     );
   }
 
-  if (!receita) {
+  if (loading || !receita) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <View style={styles.loadingContent}>
@@ -113,7 +136,7 @@ export default function DetailsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       {/* Header com imagem de fundo */}
       <View style={styles.imageContainer}>
         <Image
@@ -121,25 +144,39 @@ export default function DetailsScreen() {
             receita.imagem
               ? receita.imagem.startsWith("http")
                 ? { uri: receita.imagem }
-                : { uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${receita.imagem}` }
+                : { uri: `${API_URL}/uploads/${receita.imagem}` }
               : require("../../assets/salgadoIcon.png")
           }
           style={styles.image}
         />
         
-        {/* Overlay com botão voltar */}
+        {/* Overlay com botões */}
         <View style={styles.overlay}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.favoriteButton} onPress={toggleFavorite}>
-            <Ionicons 
-              name={isFavorited ? "heart" : "heart-outline"} 
-              size={24} 
-              color={isFavorited ? "#FF6B6B" : "#FFFFFF"} 
-            />
-          </TouchableOpacity>
+          <View style={styles.topRightButtons}>
+            <TouchableOpacity 
+              style={styles.botaoCoracaoFlutua}
+              onPress={() => toggleFavorita(receita.id, !isFavorita)}
+            >
+              <Ionicons 
+                name={isFavorita ? 'heart' : 'heart-outline'} 
+                size={32} 
+                color={isFavorita ? '#E91E63' : '#FFF'} 
+              />
+            </TouchableOpacity>
+
+            {receita.usuario_id === USUARIO_ID && (
+              <TouchableOpacity 
+                onPress={deletarReceita} 
+                style={[styles.deleteButton, { marginLeft: 10 }]}
+              >
+                <Ionicons name="trash" size={24} color="#FF6B6B" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
@@ -151,18 +188,25 @@ export default function DetailsScreen() {
           
           <View style={styles.infoContainer}>
             <View style={styles.infoItem}>
-              <Ionicons name="star" size={18} color="#FFD700" />
-              <Text style={styles.infoText}>{receita.avaliacao || "4.5"}</Text>
-            </View>
-            <View style={styles.infoItem}>
               <Ionicons name="time-outline" size={18} color="#666" />
               <Text style={styles.infoText}>{receita.tempo_preparo} min</Text>
             </View>
-            <View style={styles.infoItem}>
-              <Ionicons name="people-outline" size={18} color="#666" />
-              <Text style={styles.infoText}>{receita.porcoes || "4"} porções</Text>
-            </View>
           </View>
+
+          {/* Avaliação com estrelas */}
+          {avaliacao > 0 && (
+            <View style={styles.ratingContainer}>
+              <Text style={styles.ratingLabel}>⭐ Avaliação</Text>
+              <View style={styles.stars}>
+                {[1, 2, 3, 4, 5].map((estrela) => (
+                  <Text key={estrela} style={{ fontSize: 28 }}>
+                    {estrela <= avaliacao ? '⭐' : '☆'}
+                  </Text>
+                ))}
+              </View>
+              <Text style={styles.ratingText}>{avaliacao} de 5 estrelas</Text>
+            </View>
+          )}
         </View>
         
         {/* Ingredientes */}
@@ -229,7 +273,7 @@ export default function DetailsScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -268,11 +312,28 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  favoriteButton: {
+  topRightButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  botaoCoracaoFlutua: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  deleteButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(0,0,0,0.3)",
+    backgroundColor: "rgba(255,0,0,0.3)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -302,11 +363,11 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   infoContainer: {
-    flexDirection: "row",
-    justifyContent: "space-around",
     backgroundColor: "#F8F9FA",
     borderRadius: 12,
     paddingVertical: 15,
+    paddingHorizontal: 15,
+    marginBottom: 15,
   },
   infoItem: {
     flexDirection: "row",
@@ -317,6 +378,33 @@ const styles = StyleSheet.create({
     color: "#333",
     fontWeight: "600",
     marginLeft: 6,
+  },
+  ratingContainer: {
+    backgroundColor: "#FFF8E1",
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 15,
+    borderWidth: 1,
+    borderColor: "#FFE082",
+  },
+  ratingLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 10,
+  },
+  stars: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 8,
+  },
+  starButton: {
+    padding: 4,
+  },
+  ratingText: {
+    fontSize: 12,
+    color: "#F57C00",
+    fontWeight: "600",
   },
   section: {
     marginBottom: 30,

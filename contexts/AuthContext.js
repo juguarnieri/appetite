@@ -1,105 +1,104 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-import {
-  getUser,
-  saveUser,
-  removeUser,
-  validateLogin,
-  saveNewUser,
-  saveLastUserEmail,
-} from "../utils/storage";
-import { useRouter, useSegments } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AuthContext = createContext({});
 
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
-  const segments = useSegments();
+  const [loading, setLoading] = useState(true);
 
-  // Carregar usuário do AsyncStorage ao iniciar
   useEffect(() => {
-    loadUser();
+    bootstrapAsync();
   }, []);
 
-  // Proteger rotas baseado em autenticação
-  useEffect(() => {
-    if (isLoading) return;
-
-    const inAuthGroup = segments[0] === "(auth)";
-
-    if (!user && !inAuthGroup) {
-      router.replace("/(auth)/login");
-    } else if (user && inAuthGroup) {
-      router.replace("/(tabs)/home");
-    }
-  }, [user, segments, isLoading]);
-
-  const loadUser = async () => {
+  const bootstrapAsync = async () => {
     try {
-      const storedUser = await getUser();
-      setUser(storedUser);
-    } catch (error) {
-      console.error("Erro ao carregar usuário:", error);
+      const userToken = await AsyncStorage.getItem("userToken");
+      if (userToken) {
+        const userData = await AsyncStorage.getItem("user");
+        if (userData) {
+          setUser(JSON.parse(userData));
+        }
+      }
+    } catch (e) {
+      console.error("Erro ao restaurar sessão:", e);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const signUp = async (email, password, nome) => {
+    try {
+      if (!email || !password || !nome) {
+        return { success: false, message: "Preencha todos os campos" };
+      }
+
+      const usuarioExistente = await AsyncStorage.getItem(`user_${email}`);
+      if (usuarioExistente) {
+        return { success: false, message: "Email já cadastrado" };
+      }
+
+      const token = `token_${Date.now()}`;
+      const userData = { id: 1, email, nome, token };
+
+      await AsyncStorage.setItem("userToken", token);
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
+      await AsyncStorage.setItem("lastEmail", email);
+      await AsyncStorage.setItem(`user_${email}`, JSON.stringify({ ...userData, password }));
+
+      setUser(userData);
+      return { success: true };
+    } catch (error) {
+      console.error("Erro ao criar conta:", error);
+      return { success: false, message: "Erro ao criar conta" };
     }
   };
 
   const signIn = async (email, password) => {
     try {
-      const result = await validateLogin(email, password);
-
-      if (result.success) {
-        // salvar último email usado para facilitar re-login
-        await saveLastUserEmail(result.user.email);
-        setUser(result.user);
-        await saveUser(result.user);
-        return { success: true };
+      if (!email || !password) {
+        return { success: false, message: "Email e senha obrigatórios" };
       }
 
-      return { success: false, message: result.message };
+      const usuarioData = await AsyncStorage.getItem(`user_${email}`);
+      if (!usuarioData) {
+        console.log(`❌ Usuário não encontrado para: ${email}`);
+        return { success: false, message: "Email ou senha incorretos" };
+      }
+
+      const usuario = JSON.parse(usuarioData);
+      console.log(`✅ Usuário encontrado:`, usuario);
+      
+      if (usuario.password !== password) {
+        console.log(`❌ Senha incorreta. Esperado: ${usuario.password}, Recebido: ${password}`);
+        return { success: false, message: "Email ou senha incorretos" };
+      }
+
+      const token = `token_${Date.now()}`;
+      const userData = {
+        id: usuario.id,
+        email: usuario.email,
+        nome: usuario.nome,
+        token 
+      };
+
+      await AsyncStorage.setItem("userToken", token);
+      await AsyncStorage.setItem("user", JSON.stringify(userData));
+      await AsyncStorage.setItem("lastEmail", email);
+
+      setUser(userData);
+      console.log(`✅ Login realizado com sucesso para:`, email);
+      return { success: true };
     } catch (error) {
       console.error("Erro ao fazer login:", error);
       return { success: false, message: "Erro ao fazer login" };
     }
   };
 
-  const signUp = async (name, email, password) => {
-    try {
-      const newUser = {
-        id: Date.now().toString(),
-        name,
-        email,
-        password,
-        createdAt: new Date().toISOString(),
-      };
-
-      const result = await saveNewUser(newUser);
-
-      if (result.success) {
-        const { password: _, ...userWithoutPassword } = newUser;
-        setUser(userWithoutPassword);
-        await saveUser(userWithoutPassword);
-        // salvar último email usado após cadastro
-        await saveLastUserEmail(userWithoutPassword.email);
-        return { success: true };
-      }
-
-      return { success: false, message: result.message };
-    } catch (error) {
-      console.error("Erro ao cadastrar:", error);
-      return { success: false, message: "Erro ao cadastrar usuário" };
-    }
-  };
-
   const signOut = async () => {
     try {
-      // antes de remover a sessão, salvar o email atual para prefill
-      if (user?.email) {
-        await saveLastUserEmail(user.email);
-      }
-      await removeUser();
+      await AsyncStorage.removeItem("userToken");
+      await AsyncStorage.removeItem("user");
       setUser(null);
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
@@ -110,21 +109,21 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
-        isLoading,
-        signIn,
+        loading,
         signUp,
+        signIn,
         signOut,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
     throw new Error("useAuth deve ser usado dentro de um AuthProvider");
   }
   return context;
-};
+}

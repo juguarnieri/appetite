@@ -9,14 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  ScrollView,
   Image,
 } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRouter } from "expo-router";
+import { Link } from "expo-router";
 
 export default function RegisterScreen() {
-  const [name, setName] = useState("");
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,13 +25,8 @@ export default function RegisterScreen() {
   const router = useRouter();
 
   const handleRegister = async () => {
-    if (!name || !email || !password || !confirmPassword) {
+    if (!nome || !email || !password || !confirmPassword) {
       Alert.alert("Erro", "Preencha todos os campos");
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert("Erro", "A senha deve ter pelo menos 6 caracteres");
       return;
     }
 
@@ -40,22 +35,23 @@ export default function RegisterScreen() {
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      Alert.alert("Erro", "Email inválido");
+    if (password.length < 6) {
+      Alert.alert("Erro", "A senha deve ter pelo menos 6 caracteres");
       return;
     }
 
     setLoading(true);
     try {
-      const result = await signUp(name, email, password);
+      const result = await signUp(email, password, nome);
 
       if (result.success) {
-        Alert.alert("Sucesso", "Conta criada com sucesso!", [{ text: "OK" }]);
+        Alert.alert("Sucesso", "Conta criada com sucesso!");
+        router.replace("/(tabs)/home");
       } else {
         Alert.alert("Erro", result.message || "Falha ao criar conta");
       }
     } catch (error) {
+      console.error("Erro:", error);
       Alert.alert("Erro", "Falha ao criar conta");
     } finally {
       setLoading(false);
@@ -67,75 +63,71 @@ export default function RegisterScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.content}>
-          <Image source={require('../../assets/logoAppetite.png')} style={styles.logo} />
-          <Text style={styles.title}>Criar Conta</Text>
+      <View style={styles.content}>
+        <Image source={require('../../assets/logoAppetite.png')} style={styles.logo} />
+        <Text style={styles.title}>Criar Nova Conta</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Nome completo"
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-            editable={!loading}
-          />
+        <TextInput
+          style={styles.input}
+          placeholder="Nome Completo"
+          value={nome}
+          onChangeText={setNome}
+          autoCapitalize="words"
+          editable={!loading}
+        />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!loading}
-          />
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!loading}
+        />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Senha (mínimo 6 caracteres)"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!loading}
-          />
+        <TextInput
+          style={styles.input}
+          placeholder="Senha"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          autoCapitalize="none"
+          editable={!loading}
+        />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Confirmar senha"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            editable={!loading}
-          />
+        <TextInput
+          style={styles.input}
+          placeholder="Confirmar Senha"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry
+          autoCapitalize="none"
+          editable={!loading}
+        />
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleRegister}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Cadastrar</Text>
-            )}
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleRegister}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Cadastrar</Text>
+          )}
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-            disabled={loading}
-          >
-            <Text style={styles.backText}>← Voltar para login</Text>
-          </TouchableOpacity>
+        <View style={styles.loginContainer}>
+          <Text style={styles.loginText}>Já tem conta? </Text>
+          <Link href="/(auth)/login" asChild>
+            <TouchableOpacity disabled={loading}>
+              <Text style={styles.loginLink}>Entrar</Text>
+            </TouchableOpacity>
+          </Link>
         </View>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -145,14 +137,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFCFC",
   },
-  scrollContent: {
-    flexGrow: 1,
-  },
   content: {
-    flex: 1,
     display: "flex",
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    padding: 20,
   },
   logo: {
     width: 180,
@@ -170,41 +160,46 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: "#e4f1da",
-    borderRadius: 8,
+    borderRadius: 12,
+    width: "90%",
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
-    outlineStyle: "none",
-    width: "80%",
-    color: "black",
-    placeholderTextColor: "#797979",
     borderWidth: 1,
-    borderColor: "#d9d9d9",
+    borderColor: "#D9D9D9",
+    color: "black",
+    outlineStyle: "none",
+    placeholderTextColor: "#797979",
   },
   button: {
     backgroundColor: "#035810",
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 15,
     alignItems: "center",
     marginTop: 10,
-    width: "70%",
     minHeight: 50,
+    width: "70%",
     justifyContent: "center",
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#FFF",
+    fontSize: 18,
     fontWeight: "bold",
   },
-  backButton: {
+  loginContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
     marginTop: 20,
     alignItems: "center",
-    padding: 10,
   },
-  backText: {
+  loginText: {
+    color: "#797979",
+    fontSize: 14,
+  },
+  loginLink: {
     color: "#00AD1A",
     fontSize: 14,
     fontWeight: "bold",

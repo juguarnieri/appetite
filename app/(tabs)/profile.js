@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,13 +7,32 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
+import { useRouter, useFocusEffect } from "expo-router";
 import { useAuth } from "../../contexts/AuthContext";
-import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function ProfileScreen() {
-  const { user, signOut } = useAuth();
   const router = useRouter();
+  const { signOut } = useAuth();
+  const [userData, setUserData] = useState(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserData();
+    }, [])
+  );
+
+  const loadUserData = async () => {
+    try {
+      const user = await AsyncStorage.getItem("user");
+      if (user) {
+        setUserData(JSON.parse(user));
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados do usuário:", error);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert("Sair", "Tem certeza que deseja sair?", [
@@ -21,7 +40,11 @@ export default function ProfileScreen() {
       {
         text: "Sair",
         style: "destructive",
-        onPress: signOut,
+        onPress: async () => {
+          console.log("✅ Logout iniciado...");
+          await signOut();
+          router.replace("/(auth)/login");
+        },
       },
     ]);
   };
@@ -41,16 +64,14 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Profile Section */}
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
             <Ionicons name="person" size={50} color="#FFFFFF" />
           </View>
-          <Text style={styles.name}>{user?.name || "Usuário"}</Text>
-          <Text style={styles.email}>{user?.email}</Text>
+          <Text style={styles.name}>{userData?.nome || "Seu Nome"}</Text>
+          <Text style={styles.email}>{userData?.email || "seu.email@example.com"}</Text>
         </View>
 
-        {/* Quick Actions */}
         <View style={styles.actionsSection}>
           <Text style={styles.sectionTitle}>Ações Rápidas</Text>
 
@@ -87,25 +108,13 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Account Info */}
         <View style={styles.infoSection}>
           <Text style={styles.sectionTitle}>Informações da Conta</Text>
 
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>ID do Usuário</Text>
-              <Text style={styles.infoValue}>{user?.id || "N/A"}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Membro desde</Text>
-              <Text style={styles.infoValue}>
-                {user?.createdAt
-                  ? new Date(user.createdAt).toLocaleDateString("pt-BR")
-                  : "Dezembro 2024"}
-              </Text>
+              <Text style={styles.infoLabel}>Status</Text>
+              <Text style={styles.infoValue}>Conectado</Text>
             </View>
           </View>
 
@@ -120,13 +129,11 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={24} color="#FFFFFF" />
           <Text style={styles.logoutText}>Sair da Conta</Text>
         </TouchableOpacity>
 
-        {/* Version Info */}
         <View style={styles.versionContainer}>
           <Text style={styles.versionText}>Appetite v2.0 - Feito com ❤️</Text>
         </View>

@@ -12,7 +12,7 @@ import {
   Image,  
 } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
-import { getLastUserEmail } from "../../utils/storage";
+import { useRouter } from "expo-router";
 import { Link } from "expo-router";
 
 export default function LoginScreen() {
@@ -20,6 +20,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     let mounted = true;
@@ -45,12 +46,19 @@ export default function LoginScreen() {
     try {
       const result = await signIn(email, password);
 
-      if (!result.success) {
+      if (result.success) {
+        console.log('✅ Login bem-sucedido, navegando para home...');
+        // ✅ Aguardar um pouco e depois navegar
+        setTimeout(() => {
+          router.replace("/(tabs)/home");
+        }, 500);
+      } else {
         Alert.alert("Erro", result.message || "Falha ao fazer login");
+        setLoading(false);
       }
     } catch (error) {
+      console.error('❌ Erro:', error);
       Alert.alert("Erro", "Falha ao fazer login");
-    } finally {
       setLoading(false);
     }
   };

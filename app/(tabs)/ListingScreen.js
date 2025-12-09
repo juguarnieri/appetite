@@ -1,48 +1,118 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, Image, TextInput, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Image, TextInput, ScrollView, Alert } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 import Header from "../components/header";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+
+const USUARIO_ID = 1;
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+// ========== MAPEAMENTO DE CATEGORIAS ==========
+const CATEGORIA_MAP = {
+  'Sobremesas': 1,
+  'Lanches': 2,
+  'Diet': 3,           // ✅ Corrigido: era 'Diets', agora é 'Diet'
+  'Vegetariano': 4,
+  'Bebidas': 5,
+};
+
+const CATEGORIA_NOMES = {
+  1: 'Sobremesas',
+  2: 'Lanches',
+  3: 'Diet',        
+  4: 'Vegetariano',
+  5: 'Bebidas',
+};
 
 export default function ListingScreen() {
   const router = useRouter();
   const { categoria } = useLocalSearchParams();
   const [search, setSearch] = useState("");
+  const [todasAsReceitas, setTodasAsReceitas] = useState([]);
   const [receitas, setReceitas] = useState([]);
   const [showAll, setShowAll] = useState(false);
   const [filtroAtivo, setFiltroAtivo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [mostrarApenasAmericados, setMostrarApenasAmericados] = useState(false);
 
-  const getAllReceitas = async () => {
+  // ✅ Carregar TODAS as receitas uma única vez
+  const carregarTodasAsReceitas = async () => {
     try {
       setLoading(true);
-      let url = `${process.env.EXPO_PUBLIC_API_URL}/api/receitas`;
-      
-      if (categoria) {
-        url += `?categoria=${encodeURIComponent(categoria)}`;
-      }
-      
-      const response = await axios.get(url);
-      setReceitas(response.data);
-      
+      const response = await axios.get(`${API_URL}/api/receitas`);
+      setTodasAsReceitas(response.data);
+      console.log('✅ Total de receitas carregadas:', response.data.length);
     } catch (error) {
-      console.error("Erro ao buscar receitas:", error.response?.data || error.message);
+      console.error("❌ Erro ao buscar receitas:", error.message);
+      Alert.alert('Erro', 'Falha ao carregar receitas');
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ Filtrar localmente por categoria
+  const filtrarPorCategoria = (receitasOriginais, categoriaProcurada) => {
+    if (!categoriaProcurada) return receitasOriginais;
+    
+    const categoriaMap = {
+      'Sobremesas': 1,
+      'Lanches': 2,
+      'Diet': 3,
+      'Vegetariano': 4,
+      'Bebidas': 5,
+    };
+    
+    const categoriaId = categoriaMap[categoriaProcurada];
+    return receitasOriginais.filter(r => r.categoria_id === categoriaId);
+  };
+
   useEffect(() => {
-    getAllReceitas();
-  }, [categoria]);
+    carregarTodasAsReceitas();
+  }, []);
+
+  useEffect(() => {
+    const receitasFiltradas = filtrarPorCategoria(todasAsReceitas, categoria);
+    setReceitas(receitasFiltradas);
+  }, [categoria, todasAsReceitas]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const receitasFiltradas = filtrarPorCategoria(todasAsReceitas, categoria);
+      setReceitas(receitasFiltradas);
+    }, [categoria, todasAsReceitas])
+  );
+
+  const toggleFavorito = async (receitaId, currentFavorita) => {
+    try {
+      const novoStatus = !currentFavorita;
+      
+      console.log(`❤️ Toggling favorita - ID: ${receitaId}, Novo status: ${novoStatus}`);
+
+      const response = await axios.put(
+        `${API_URL}/api/receitas/${receitaId}/favorita`,
+        { favorita: novoStatus }
+      );
+      
+      console.log('✅ Sucesso:', response.data);
+
+      setReceitas(receitas.map(r =>
+        r.id === receitaId ? { ...r, favorita: novoStatus } : r
+      ));
+    } catch (error) {
+      console.error('❌ Erro ao toggar favorita:', error.response?.data || error.message);
+      Alert.alert('Erro', 'Erro ao atualizar favorita');
+    }
+  };
 
   const receitasFiltradas = Array.isArray(receitas)
     ? receitas.filter((item) => {
         const matchSearch = item.titulo && typeof item.titulo === "string" && 
                            item.titulo.toLowerCase().includes(search.toLowerCase());
         const matchDificuldade = !filtroAtivo || item.dificuldade === filtroAtivo;
-        return matchSearch && matchDificuldade;
+        const matchFavorito = !mostrarApenasAmericados || item.favorita;
+        return matchSearch && matchDificuldade && matchFavorito;
       })
     : [];
 
@@ -88,21 +158,22 @@ export default function ListingScreen() {
     }
   };
 
-  const displayedData = showAll ? receitasFiltradas : receitasFiltradas.slice(0, 5);
+  const displayedData = showAll ? receitasFiltradas : receitasFiltradas.slice(0, 50);
 
   if (loading) {
     return (
       <View style={styles.container}>
         <Header />
         <View style={styles.loadingContainer}>
-          <Text>Carregando receitas...</Text>
+          <Ionicons name="restaurant" size={50} color="#2E7D32" />
+          <Text style={styles.loadingText}>Carregando receitas...</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <Header />
       
       <View style={styles.content}>
@@ -131,6 +202,26 @@ export default function ListingScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
+
+            <TouchableOpacity
+              style={[
+                styles.difficultyButton,
+                mostrarApenasAmericados && styles.favoritoButtonActive
+              ]}
+              onPress={() => setMostrarApenasAmericados(!mostrarApenasAmericados)}
+            >
+              <Ionicons 
+                name={mostrarApenasAmericados ? "heart" : "heart-outline"}
+                size={20} 
+                color={mostrarApenasAmericados ? '#FFFFFF' : '#E91E63'} 
+              />
+              <Text style={[
+                styles.difficultyButtonText,
+                mostrarApenasAmericados && styles.difficultyButtonTextActive
+              ]}>
+                Curtidas
+              </Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
 
@@ -166,6 +257,21 @@ export default function ListingScreen() {
           </View>
         )}
 
+        {mostrarApenasAmericados && (
+          <View style={styles.filterContainer}>
+            <View style={[styles.filterChip, { backgroundColor: '#E91E63' }]}>
+              <Ionicons name="heart" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Text style={styles.filterText}>Mostrando: Receitas Curtidas</Text>
+              <TouchableOpacity 
+                style={styles.clearFilter}
+                onPress={() => setMostrarApenasAmericados(false)}
+              >
+                <Ionicons name="close" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         <View style={styles.searchContainer}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
@@ -179,7 +285,8 @@ export default function ListingScreen() {
 
         <View style={styles.headerContainer}>
           <Text style={styles.header}>
-            {categoria ? `Receitas de ${categoria}` : "Explorar Receitas"}
+            {mostrarApenasAmericados ? "Receitas Curtidas" :
+             categoria ? `Receitas de ${categoria}` : "Explorar Receitas"}
           </Text>
           <Text style={styles.subHeader}>
             {receitasFiltradas.length} receita{receitasFiltradas.length !== 1 ? 's' : ''} encontrada{receitasFiltradas.length !== 1 ? 's' : ''}
@@ -189,8 +296,11 @@ export default function ListingScreen() {
 
         {receitasFiltradas.length === 0 ? (
           <View style={styles.emptyContainer}>
+            <Ionicons name="heart-dislike-outline" size={60} color="#CCC" />
             <Text style={styles.emptyText}>
-              {categoria ? 
+              {mostrarApenasAmericados ? 
+                "Você ainda não curtiu nenhuma receita" :
+                categoria ? 
                 `Nenhuma receita encontrada para a categoria "${categoria}"` : 
                 "Nenhuma receita encontrada"}
             </Text>
@@ -200,75 +310,88 @@ export default function ListingScreen() {
             data={displayedData}
             keyExtractor={(item) => item.id.toString()}
             showsVerticalScrollIndicator={false}
+            scrollEnabled={true}
+            nestedScrollEnabled={true}
             contentContainerStyle={styles.listContainer}
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.card} onPress={() => handlePress(item)}>
-                <View style={styles.imageContainer}>
-                  <Image
-                    source={
-                      item.imagem
-                        ? item.imagem.startsWith("http")
-                          ? { uri: item.imagem }
-                          : { uri: `${process.env.EXPO_PUBLIC_API_URL}/uploads/${item.imagem}` }
-                        : require("../../assets/salgadoIcon.png") 
-                    }
-                    style={styles.image}
-                  />
-                </View>
-                
-                <View style={styles.cardContent}>
-                  <Text style={styles.title} numberOfLines={2}>{item.titulo}</Text>
-                  <Text style={styles.description} numberOfLines={2}>{item.descricao}</Text>
+              <View style={styles.cardWrapper}>
+                <TouchableOpacity style={styles.card} onPress={() => handlePress(item)}>
+                  <View style={styles.imageContainer}>
+                    <Image
+                      source={
+                        item.imagem
+                          ? item.imagem.startsWith("http")
+                            ? { uri: item.imagem }
+                            : { uri: `${API_URL}/uploads/${item.imagem}` }
+                          : require("../../assets/salgadoIcon.png") 
+                      }
+                      style={styles.image}
+                    />
+                  </View>
                   
-                  <View style={styles.badgeContainer}>
-                    {item.dificuldade && (
-                      <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(item.dificuldade) }]}>
-                        <Ionicons 
-                          name={getDifficultyIcon(item.dificuldade)} 
-                          size={12} 
-                          color="#FFFFFF" 
-                        />
-                        <Text style={styles.difficultyBadgeText}>
-                          {item.dificuldade === 'FACIL' ? 'Fácil' : 
-                           item.dificuldade === 'MEDIO' ? 'Médio' : 'Difícil'}
-                        </Text>
-                      </View>
-                    )}
+                  <View style={styles.cardContent}>
+                    <Text style={styles.title} numberOfLines={2}>{item.titulo}</Text>
+                    <Text style={styles.description} numberOfLines={2}>{item.descricao}</Text>
+                    
+                    <View style={styles.badgeContainer}>
+                      {item.dificuldade && (
+                        <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(item.dificuldade) }]}>
+                          <Ionicons 
+                            name={getDifficultyIcon(item.dificuldade)} 
+                            size={12} 
+                            color="#FFFFFF" 
+                          />
+                          <Text style={styles.difficultyBadgeText}>
+                            {item.dificuldade === 'FACIL' ? 'Fácil' : 
+                             item.dificuldade === 'MEDIO' ? 'Médio' : 'Difícil'}
+                          </Text>
+                        </View>
+                      )}
 
-                    {item.avaliacao && (
-                      <View style={styles.ratingBadge}>
-                        <Ionicons name="star" size={12} color="#FFD700" />
-                        <Text style={styles.ratingBadgeText}>{item.avaliacao}</Text>
-                      </View>
-                    )}
-                  </View>
-                  
-                  <View style={styles.footer}>
-                    <View style={styles.timeContainer}>
-                      <Text style={styles.timeIcon}>⏱️</Text>
-                      <Text style={styles.time}>{item.tempo_preparo} min</Text>
+                      {item.avaliacao && item.avaliacao > 0 && (
+                        <View style={styles.ratingBadge}>
+                          <Ionicons name="star" size={12} color="#FFD700" />
+                          <Text style={styles.ratingBadgeText}>{item.avaliacao}</Text>
+                        </View>
+                      )}
                     </View>
-                    <TouchableOpacity style={styles.favoriteButton}>
-                      <Text style={styles.favorite}>{item.favorita ? "❤️" : "♡"}</Text>
-                    </TouchableOpacity>
+                    
+                    <View style={styles.footer}>
+                      <View style={styles.timeContainer}>
+                        <Text style={styles.timeIcon}>⏱️</Text>
+                        <Text style={styles.time}>{item.tempo_preparo} min</Text>
+                      </View>
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.favoriteButton}
+                  onPress={() => toggleFavorito(item.id, item.favorita)}
+                >
+                  <Ionicons
+                    name={item.favorita ? "heart" : "heart-outline"}
+                    size={28}
+                    color={item.favorita ? "#E91E63" : "#CCC"}
+                  />
+                </TouchableOpacity>
+              </View>
             )}
           />
         )}
 
-        {!showAll && receitasFiltradas.length > 5 && (
+        {!showAll && receitasFiltradas.length > 50 && (
           <TouchableOpacity style={styles.readMoreButton} onPress={() => setShowAll(true)}>
             <Text style={styles.readMore}>VER MAIS RECEITAS</Text>
             <Text style={styles.readMoreIcon}>↓</Text>
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
+// ...existing StyleSheet...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -310,6 +433,10 @@ const styles = StyleSheet.create({
   difficultyButtonActive: {
     backgroundColor: "#2E7D32",
     borderColor: "#2E7D32",
+  },
+  favoritoButtonActive: {
+    backgroundColor: "#E91E63",
+    borderColor: "#E91E63",
   },
   difficultyButtonText: {
     fontSize: 14,
@@ -386,13 +513,16 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   listContainer: {
-    paddingBottom: 100,
+    paddingBottom: 120,
+  },
+  cardWrapper: {
+    position: "relative",
+    marginBottom: 16,
   },
   card: {
     flexDirection: "row",
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    marginBottom: 16,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
@@ -401,10 +531,10 @@ const styles = StyleSheet.create({
     elevation: 4,
     borderWidth: 1,
     borderColor: "#F0F0F0",
-    height: 120,
+    height: 150,
   },
   imageContainer: {
-    width: 100,
+    width: 120,
     flex: 1,
     backgroundColor: "#F5F5F5",
     overflow: "hidden",
@@ -421,7 +551,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     justifyContent: "space-between",
-    height: 120,
+    height: 150,
   },
   title: {
     fontSize: 16,
@@ -457,18 +587,20 @@ const styles = StyleSheet.create({
     marginLeft: 3,
   },
   ratingBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF8E1",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8E1',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FFE082',
+    gap: 6,
   },
   ratingBadgeText: {
-    fontSize: 10,
-    color: "#F57C00",
-    fontWeight: "600",
-    marginLeft: 3,
+    fontSize: 12,
+    color: '#F57C00',
+    fontWeight: '700',
   },
   footer: {
     flexDirection: "row",
@@ -494,12 +626,20 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   favoriteButton: {
-    padding: 6,
-    borderRadius: 15,
-    backgroundColor: "#FFF5F5",
-  },
-  favorite: {
-    fontSize: 18,
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 5,
   },
   readMoreButton: {
     backgroundColor: "#2E7D32",
@@ -531,12 +671,18 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    gap: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#666",
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 40,
+    gap: 20,
   },
   emptyText: {
     fontSize: 16,

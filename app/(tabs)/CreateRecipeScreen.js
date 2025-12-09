@@ -1,223 +1,260 @@
-import React, { useState } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  ScrollView, 
-  TouchableOpacity,
-  Image,
-  Alert
-} from "react-native";
-import { useRouter } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
-import axios from "axios";
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import axios from 'axios';
 
 export default function CreateRecipeScreen() {
   const router = useRouter();
-  const [titulo, setTitulo] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [ingredientes, setIngredientes] = useState([]);
-  const [novoIngrediente, setNovoIngrediente] = useState("");
-  const [modoPreparo, setModoPreparo] = useState("");
+  const [titulo, setTitulo] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [ingredientes, setIngredientes] = useState([{ id: 1, nome: '', quantidade: '' }]);
+  const [modoPreparo, setModoPreparo] = useState('');
+  const [tempoPreparo, setTempoPreparo] = useState('');
+  const [categoria, setCategoria] = useState('1');
+  const [dificuldade, setDificuldade] = useState('FACIL');
   const [imagem, setImagem] = useState(null);
+  const [avaliacao, setAvaliacao] = useState(0);
+  const [proximoId, setProximoId] = useState(2);
 
   const selecionarImagem = async () => {
-    try {
-      // Solicitar permissões
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (permissionResult.granted === false) {
-        Alert.alert("Erro", "Permissão para acessar a galeria é necessária!");
-        return;
-      }
+    const resultado = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        setImagem(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error("Erro ao selecionar imagem:", error);
-      Alert.alert("Erro", "Não foi possível selecionar a imagem.");
+    if (!resultado.cancelled) {
+      setImagem(resultado.assets[0]);
     }
   };
 
   const adicionarIngrediente = () => {
-    if (novoIngrediente.trim()) {
-      setIngredientes(prev => [...prev, novoIngrediente.trim()]);
-      setNovoIngrediente("");
-    }
+    setIngredientes([...ingredientes, { id: proximoId, nome: '', quantidade: '' }]);
+    setProximoId(proximoId + 1);
   };
 
-  const removerIngrediente = (index) => {
-    setIngredientes(prev => prev.filter((_, i) => i !== index));
+  const removerIngrediente = (id) => {
+    setIngredientes(ingredientes.filter(ing => ing.id !== id));
   };
 
-  const excluirReceita = () => {
-    Alert.alert(
-      "Cancelar",
-      "Tem certeza que deseja cancelar a criação da receita?",
-      [
-        { text: "Não", style: "cancel" },
-        { text: "Sim", style: "destructive", onPress: () => router.back() }
-      ]
-    );
+  const atualizarIngrediente = (id, campo, valor) => {
+    setIngredientes(ingredientes.map(ing => 
+      ing.id === id ? { ...ing, [campo]: valor } : ing
+    ));
   };
 
   const adicionarReceita = async () => {
-    if (!titulo || !descricao || !modoPreparo) {
-      Alert.alert("Erro", "Preencha todos os campos obrigatórios");
-      return;
-    }
-
-    if (ingredientes.length === 0) {
-      Alert.alert("Erro", "Adicione pelo menos um ingrediente");
-      return;
-    }
-
     try {
-      console.log('Tentando enviar para:', `${process.env.EXPO_PUBLIC_API_URL}/api/receitas`);
-      
-      const ingredientesString = ingredientes.join(", ");
-      
-      // Primeiro, vamos testar com um objeto simples em vez de FormData
-      const receitaData = {
-        titulo,
-        descricao,
-        ingredientes: ingredientesString,
-        modo_preparo: modoPreparo,
-        tempo_preparo: "30",
-        categoria: "Geral",
-        usuario_id: "1"
-      };
+      if (!titulo.trim()) {
+        Alert.alert('Erro', 'Título é obrigatório');
+        return;
+      }
 
-      console.log('Dados a serem enviados:', receitaData);
+      if (avaliacao === 0) {
+        Alert.alert('Erro', 'Selecione uma avaliação (estrelas)');
+        return;
+      }
 
-      const response = await axios.post(
+      const ingredientesFormatados = ingredientes
+        .filter(ing => ing.nome.trim() !== '')
+        .map(ing => `${ing.nome} (${ing.quantidade})`)
+        .join(', ');
+
+      const formData = new FormData();
+      formData.append('titulo', titulo.trim());
+      formData.append('descricao', descricao.trim());
+      formData.append('ingredientes', ingredientesFormatados);
+      formData.append('modo_preparo', modoPreparo.trim());
+      formData.append('tempo_preparo', String(parseInt(tempoPreparo) || 0));
+      formData.append('categoria_id', String(parseInt(categoria)));
+      formData.append('dificuldade', dificuldade);
+      formData.append('usuario_id', '1');
+      formData.append('avaliacao', String(avaliacao));
+
+      if (imagem && imagem.uri) {
+        const response = await fetch(imagem.uri);
+        const blob = await response.blob();
+        
+        formData.append('imagem', {
+          uri: imagem.uri,
+          type: blob.type || 'image/jpeg',
+          name: `receita-${Date.now()}.jpg`,
+        });
+      }
+
+      console.log('Enviando receita com avaliação:', avaliacao);
+
+      const axiosResponse = await axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/receitas`,
-        receitaData,
+        formData,
         {
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'multipart/form-data',
           },
         }
       );
 
-      console.log('Resposta da API:', response.data);
-      Alert.alert("Sucesso", "Receita criada com sucesso!");
+      console.log('Sucesso:', axiosResponse.data);
+      Alert.alert('Sucesso', 'Receita adicionada com sucesso!');
       
-      // Limpar campos
-      setTitulo("");
-      setDescricao("");
-      setIngredientes([]);
-      setModoPreparo("");
+      setTitulo('');
+      setDescricao('');
+      setIngredientes([{ id: 1, nome: '', quantidade: '' }]);
+      setModoPreparo('');
+      setTempoPreparo('');
+      setCategoria('1');
+      setDificuldade('FACIL');
       setImagem(null);
+      setAvaliacao(0);
+      setProximoId(2);
       
+      router.push('/(tabs)/home');
     } catch (error) {
-      console.error("Erro detalhado:", error.response?.data || error.message);
-      console.error("Status:", error.response?.status);
-      
-      if (error.response?.status === 404) {
-        Alert.alert("Erro", "Endpoint não encontrado. Verifique se a API está rodando.");
+      if (error.response?.data?.details?.includes('unique constraint')) {
+        Alert.alert('Erro', 'Essa receita já existe! Use outro título.');
       } else {
-        Alert.alert("Erro", "Não foi possível criar a receita. Tente novamente.");
+        console.error('Erro detalhado:', error.response?.data || error.message);
+        Alert.alert('Erro', error.response?.data?.error || 'Erro ao adicionar receita');
       }
     }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={excluirReceita}>
-          <Text style={styles.backButton}>{"<"}</Text>
+      {/* Header com seta de voltar */}
+      <View style={styles.headerContainer}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#2E7D32" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nova Receita</Text>
-        <View style={styles.placeholder} />
+        <Text style={styles.headerTitle}>Adicionar Receita</Text>
+        <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <TouchableOpacity style={styles.imageContainer} onPress={selecionarImagem}>
+      <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <TouchableOpacity style={styles.imagemButton} onPress={selecionarImagem}>
           {imagem ? (
-            <Image source={{ uri: imagem }} style={styles.image} />
+            <Image source={{ uri: imagem.uri }} style={styles.imagemPreview} />
           ) : (
-            <View style={styles.imagePlaceholder}>
-              <Text style={styles.imageIcon}>📷</Text>
-              <Text style={styles.imageText}>Adicionar Foto</Text>
-            </View>
+            <Text style={styles.imagemButtonText}>📷 Selecionar Imagem</Text>
           )}
         </TouchableOpacity>
 
-        <View style={styles.form}>
-          <Text style={styles.label}>Título da Receita</Text>
-          <TextInput
-            style={styles.input}
-            value={titulo}
-            onChangeText={setTitulo}
-            placeholder="Digite o título da receita"
-          />
+        <TextInput
+          style={styles.input}
+          placeholder="Título da receita"
+          value={titulo}
+          onChangeText={setTitulo}
+        />
 
-          <Text style={styles.label}>Descrição/Resumo</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={descricao}
-            onChangeText={setDescricao}
-            placeholder="Digite uma breve descrição da receita"
-            multiline
-            numberOfLines={4}
-          />
+        <TextInput
+          style={styles.input}
+          placeholder="Descrição"
+          value={descricao}
+          onChangeText={setDescricao}
+          multiline
+        />
 
-          <Text style={styles.sectionTitle}>Ingredientes</Text>
-          
-          <View style={styles.addIngredientContainer}>
-            <TextInput
-              style={styles.ingredientInput}
-              value={novoIngrediente}
-              onChangeText={setNovoIngrediente}
-              placeholder="Digite um ingrediente"
-              onSubmitEditing={adicionarIngrediente}
-            />
-            <TouchableOpacity style={styles.addButton} onPress={adicionarIngrediente}>
-              <Text style={styles.addButtonText}>+</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.ingredientsList}>
-            {ingredientes.map((ingrediente, index) => (
-              <View key={index} style={styles.ingredientItem}>
-                <Text style={styles.ingredientText}>{ingrediente}</Text>
-                <TouchableOpacity 
-                  style={styles.removeButton}
-                  onPress={() => removerIngrediente(index)}
-                >
-                  <Text style={styles.removeButtonText}>×</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-
-          <Text style={styles.label}>Modo de Preparo</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            value={modoPreparo}
-            onChangeText={setModoPreparo}
-            placeholder="Digite o modo de preparo da receita"
-            multiline
-            numberOfLines={6}
-          />
+        <Text style={styles.label}>Categoria:</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={categoria}
+            onValueChange={setCategoria}
+            style={styles.picker}
+          >
+            <Picker.Item label="Sobremesas" value="1" />
+            <Picker.Item label="Lanches" value="2" />
+            <Picker.Item label="Diet" value="3" />           {/* Mudado de 'Diets' para 'Diet' */}
+            <Picker.Item label="Vegetariano" value="4" />
+            <Picker.Item label="Bebidas" value="5" />
+          </Picker>
         </View>
-      </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.addRecipeButton} onPress={adicionarReceita}>
-          <Text style={styles.addRecipeButtonText}>ADICIONAR RECEITA</Text>
+        <Text style={styles.label}>Nível de Dificuldade:</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={dificuldade}
+            onValueChange={setDificuldade}
+            style={styles.picker}
+          >
+            <Picker.Item label="Fácil" value="FACIL" />
+            <Picker.Item label="Médio" value="MEDIO" />
+            <Picker.Item label="Difícil" value="DIFICIL" />
+          </Picker>
+        </View>
+
+        <Text style={styles.label}>Avaliação:</Text>
+        <View style={styles.starsContainer}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <TouchableOpacity 
+              key={star}
+              onPress={() => setAvaliacao(star)}
+              style={styles.starButton}
+            >
+              <Ionicons 
+                name={star <= avaliacao ? "star" : "star-outline"} 
+                size={32} 
+                color="#FFD700" 
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={styles.label}>Ingredientes:</Text>
+        <View style={styles.ingredientesWrapper}>
+          {ingredientes.map((item) => (
+            <View key={item.id} style={styles.ingredienteContainer}>
+              <TextInput
+                style={[styles.input, { flex: 2, marginRight: 10, marginBottom: 0 }]}
+                placeholder="Nome do ingrediente"
+                value={item.nome}
+                onChangeText={(valor) => atualizarIngrediente(item.id, 'nome', valor)}
+              />
+              <TextInput
+                style={[styles.input, { flex: 1, marginRight: 10, marginBottom: 0 }]}
+                placeholder="Qty"
+                value={item.quantidade}
+                onChangeText={(valor) => atualizarIngrediente(item.id, 'quantidade', valor)}
+              />
+              <TouchableOpacity 
+                style={styles.removerButton}
+                onPress={() => removerIngrediente(item.id)}
+              >
+                <Ionicons name="trash" size={20} color="#F44336" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
+        <TouchableOpacity style={styles.adicionarButton} onPress={adicionarIngrediente}>
+          <Ionicons name="add-circle" size={24} color="#2E7D32" />
+          <Text style={styles.adicionarButtonText}>Adicionar Ingrediente</Text>
         </TouchableOpacity>
-      </View>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Modo de preparo"
+          value={modoPreparo}
+          onChangeText={setModoPreparo}
+          multiline
+          numberOfLines={4}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Tempo de preparo (minutos)"
+          value={tempoPreparo}
+          onChangeText={setTempoPreparo}
+          keyboardType="numeric"
+        />
+
+        <TouchableOpacity style={styles.button} onPress={adicionarReceita}>
+          <Text style={styles.buttonText}>Adicionar Receita</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
@@ -225,162 +262,126 @@ export default function CreateRecipeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: '#FFFCFC',
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: 50,
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
+    paddingTop: 50,
     paddingBottom: 15,
-  },
-  backButton: {
-    fontSize: 24,
-    color: "#333333",
+    backgroundColor: '#FFFCFC',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333333",
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2E7D32',
   },
-  placeholder: {
-    width: 24,
+  backButton: {
+    padding: 8,
   },
-  content: {
+  scrollContent: {
     flex: 1,
-    paddingHorizontal: 20,
+    padding: 20,
   },
-  imageContainer: {
-    marginBottom: 20,
-  },
-  image: {
-    width: "100%",
-    height: 200,
-    borderRadius: 10,
-    resizeMode: "cover",
-  },
-  imagePlaceholder: {
-    width: "100%",
-    height: 200,
-    backgroundColor: "#F5F5F5",
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
+  imagemButton: {
+    backgroundColor: '#E8F5E9',
     borderWidth: 2,
-    borderColor: "#E0E0E0",
-    borderStyle: "dashed",
+    borderColor: '#2E7D32',
+    borderRadius: 10,
+    padding: 40,
+    marginBottom: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 200,
   },
-  imageIcon: {
-    fontSize: 30,
-    marginBottom: 10,
+  imagemButtonText: {
+    fontSize: 18,
+    color: '#2E7D32',
+    fontWeight: '600',
   },
-  imageText: {
-    fontSize: 16,
-    color: "#666666",
-  },
-  form: {
-    flex: 1,
+  imagemPreview: {
+    width: '100%',
+    height: 200,
+    borderRadius: 10,
   },
   label: {
     fontSize: 16,
-    fontWeight: "500",
-    color: "#333333",
-    marginBottom: 8,
+    fontWeight: '600',
+    color: '#333',
     marginTop: 15,
+    marginBottom: 8,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#CCCCCC",
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: "#F9F9F9",
-  },
-  textArea: {
-    height: 100,
-    textAlignVertical: "top",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333333",
-    marginTop: 25,
+    borderColor: '#E0E0E0',
+    borderRadius: 10,
+    padding: 12,
     marginBottom: 15,
+    backgroundColor: '#FFFFFF',
+    fontSize: 14,
   },
-  addIngredientContainer: {
-    flexDirection: "row",
-    marginBottom: 15,
-    gap: 10,
-  },
-  ingredientInput: {
-    flex: 1,
+  pickerContainer: {
     borderWidth: 1,
-    borderColor: "#CCCCCC",
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: "#F9F9F9",
+    borderColor: '#E0E0E0',
+    borderRadius: 10,
+    marginBottom: 15,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
   },
-  addButton: {
-    backgroundColor: "#2E7D32",
-    borderRadius: 8,
-    paddingHorizontal: 20,
-    justifyContent: "center",
-    alignItems: "center",
+  picker: {
+    height: 50,
   },
-  addButtonText: {
-    color: "#FFFFFF",
-    fontSize: 20,
-    fontWeight: "bold",
+  starsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 12,
   },
-  ingredientsList: {
+  starButton: {
+    padding: 8,
+  },
+  ingredientesWrapper: {
+    marginBottom: 15,
+  },
+  ingredienteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  removerButton: {
+    padding: 10,
+  },
+  adicionarButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E8F5E9',
+    borderRadius: 10,
+    padding: 12,
     marginBottom: 20,
   },
-  ingredientItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "#F9F9F9",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
+  adicionarButtonText: {
+    color: '#2E7D32',
+    fontWeight: '600',
+    marginLeft: 8,
+    fontSize: 14,
   },
-  ingredientText: {
-    flex: 1,
+  button: {
+    backgroundColor: '#2E7D32',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  buttonText: {
+    color: '#FFFFFF',
     fontSize: 16,
-    color: "#333333",
-  },
-  removeButton: {
-    backgroundColor: "#FF4444",
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  removeButtonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  footer: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  addRecipeButton: {
-    backgroundColor: "#2E7D32",
-    borderRadius: 8,
-    paddingVertical: 15,
-    alignItems: "center",
-  },
-  addRecipeButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: 'bold',
   },
 });
