@@ -1,21 +1,46 @@
 {
   "expo": {
-    "name": "rotas-privadas-v2",
-    "slug": "rotas-privadas-v2",
+    "name": "Appetite",
+    "slug": "appetite",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/salgadoIcon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/talher.png",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/salgadoIcon.png",
-      "backgroundColor": "#ffffff"
+      "image": "./assets/talher.png",
+      "resizeMode": "contain"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.appetite.app",
+      "splash": {
+        "image": "./assets/talher.png",
+        "resizeMode": "contain"
+      }
     },
     "android": {
-      "edgeToEdgeEnabled": true
-    }
+      "edgeToEdgeEnabled": true,
+      "package": "com.appetite.app",
+      "splash": {
+        "image": "./assets/talher.png",
+        "resizeMode": "contain"
+      },
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/talher.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "web": {
+      "favicon": "./assets/talher.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Appetite to access your photos.",
+          "cameraPermission": "Allow Appetite to access your camera."
+        }
+      ]
+    ]
   }
 }

@@ -283,8 +283,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFCFC",
   },
   imageContainer: {
-    position: "relative",
-    height: 280,
+    width: 120,
+    flex: 1,
+    backgroundColor: "transparent",  // ✅ Mudado de "#F5F5F5" para "transparent"
+    overflow: "hidden",
+    borderTopLeftRadius: 15,
+    borderBottomLeftRadius: 15,
   },
   image: {
     width: "100%",

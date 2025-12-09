@@ -1,186 +1,274 @@
-# 🚀 Rotas Privadas V2 - Expo Router + AsyncStorage
+# 🍽️ Appetite - App de Receitas
 
-## Versão melhorada com Expo Router e persistência de dados
+Um aplicativo mobile completo para compartilhar, descobrir e gerenciar receitas culinárias com uma interface moderna e intuitiva.
 
-### 🆕 O que há de novo nesta versão:
+## ✨ Características Principais
 
-- ✅ **Expo Router** - Navegação baseada em arquivos (file-based routing)
-- ✅ **AsyncStorage** - Persistência de dados local
-- ✅ **Cadastro de Usuários** - Sistema completo de criação de contas
-- ✅ **Login Persistente** - Dados salvos mesmo após fechar o app
-- ✅ **Rotas Privadas Automáticas** - Proteção inteligente de rotas
-- ✅ **Validação Avançada** - Email, senha e campos obrigatórios
-- ✅ **Navegação por Tabs** - Home e Perfil
+### 👤 Autenticação & Perfil
+- ✅ Cadastro e login de usuários
+- ✅ Perfil personalizado
+- ✅ Logout seguro
 
----
+### 📚 Receitas
+- ✅ Visualizar receitas detalhadas
+- ✅ 5 categorias principais: Sobremesas, Lanches, Diet, Vegetariano e Bebidas
+- ✅ Filtrar por dificuldade (Fácil, Médio, Difícil)
+- ✅ Sistema de favoritos (curtir receitas)
+- ✅ Avaliação com estrelas
+- ✅ Tempo de preparo
+- ✅ Lista de ingredientes interativa
+- ✅ Modo de preparo passo a passo
+
+### ➕ Criar Receitas
+- ✅ Upload de imagem
+- ✅ Ingredientes dinâmicos
+- ✅ Seleção de categoria
+- ✅ Nível de dificuldade
+- ✅ Avaliação (1-5 estrelas)
+
+### 🔍 Busca & Filtros
+- ✅ Pesquisa por nome
+- ✅ Filtrar por nível de dificuldade
+- ✅ Filtrar receitas curtidas
+- ✅ Navegação rápida por categorias
+
+### 📱 Interface
+- ✅ Design moderno e responsivo
+- ✅ Tema claro harmonioso
+- ✅ Navegação intuitiva com abas
+- ✅ Dicas de culinária na home
+
+## 🛠️ Tecnologias
+
+### Frontend
+- **React Native** - Framework mobile
+- **Expo** - Plataforma de desenvolvimento
+- **Expo Router** - Navegação
+- **Ionicons** - Ícones
+
+### Backend
+- **Node.js** - Runtime JavaScript
+- **Express** - Framework web
+- **PostgreSQL** - Banco de dados
+- **Axios** - Cliente HTTP
+
+### Storage
+- **AsyncStorage** - Armazenamento local
+- **Multer** - Upload de arquivos
 
 ## 📁 Estrutura do Projeto
 
 ```
-rotas-privadas-v2/
+appetite/
 ├── app/
-│   ├── _layout.js                 # Layout raiz com AuthProvider
-│   ├── index.js                   # Rota inicial (redireciona)
 │   ├── (auth)/
-│   │   ├── _layout.js             # Layout de autenticação
-│   │   ├── login.js               # Tela de login
-│   │   └── register.js            # Tela de cadastro
-│   └── (tabs)/
-│       ├── _layout.js             # Layout com tabs
-│       ├── home.js                # Tela home (privada)
-│       └── profile.js             # Tela perfil (privada)
-├── contexts/
-│   └── AuthContext.js             # Context com proteção de rotas
-└── utils/
-    └── storage.js                 # Funções do AsyncStorage
+│   │   ├── login.js
+│   │   ├── register.js
+│   │   └── _layout.js
+│   ├── (tabs)/
+│   │   ├── home.js
+│   │   ├── ListingScreen.js
+│   │   ├── CreateRecipeScreen.js
+│   │   ├── DetailsScreen.js
+│   │   ├── profile.js
+│   │   └── _layout.js
+│   ├── components/
+│   │   ├── header.js
+│   │   ├── navComidas.js
+│   │   └── RecipeCard.js
+│   ├── contexts/
+│   │   └── AuthContext.js
+│   └── _layout.js
+├── server/
+│   ├── routes/
+│   │   └── receitas.js
+│   ├── database/
+│   │   └── seed.sql
+│   └── migrations/
+│       └── init.js
+├── assets/
+└── .env
 ```
 
----
+## 🚀 Como Começar
 
-## 📦 Instalação
+### Pré-requisitos
+- Node.js v16+
+- npm ou yarn
+- PostgreSQL instalado
+- Expo CLI
 
+### 1️⃣ Clonar o repositório
 ```bash
-cd rotas-privadas-v2
+git clone https://github.com/seu-usuario/appetite.git
+cd appetite
+```
+
+### 2️⃣ Instalar dependências
+```bash
 npm install
+# ou
+yarn install
 ```
 
----
-
-## 🚀 Como Executar
-
+### 3️⃣ Configurar banco de dados
 ```bash
-npx expo start
+# Criar banco de dados
+createdb appetitedb
+
+# Executar migrations
+psql appetitedb < database/seed.sql
 ```
 
-Depois:
-- Pressione `w` para web
-- Escaneie QR code com Expo Go
-- Ou pressione `a` para Android
-
----
-
-## 🎯 Como Funciona
-
-### 1. Cadastro de Nova Conta
-1. Abra o app (vai para tela de login)
-2. Clique em "Cadastre-se"
-3. Preencha: Nome, Email e Senha
-4. Clique em "Cadastrar"
-5. Conta criada e login automático! ✅
-
-### 2. Login
-1. Digite email e senha
-2. Clique em "Entrar"
-3. Se credenciais corretas, acessa área privada ✅
-
-### 3. Persistência
-- Os dados ficam salvos no AsyncStorage
-- Mesmo fechando o app, você continua logado
-- Use "Sair" para fazer logout
-
-### 4. Rotas Privadas
-- `/home` e `/profile` são rotas privadas
-- Só acessíveis após login
-- Tentativa de acesso sem login → redireciona para login
-
----
-
-## 🔐 Recursos de Segurança
-
-- ✅ Validação de email (regex)
-- ✅ Senha mínimo 6 caracteres
-- ✅ Confirmação de senha
-- ✅ Verificação de email duplicado
-- ✅ Proteção automática de rotas
-
----
-
-## 💾 AsyncStorage
-
-### O que é salvo:
-- **Usuário logado** - Dados do usuário atual
-- **Banco de usuários** - Todos os usuários cadastrados
-
-### Funções disponíveis:
-- `saveUser()` - Salvar usuário logado
-- `getUser()` - Obter usuário logado
-- `removeUser()` - Remover usuário (logout)
-- `getAllUsers()` - Listar todos os usuários
-- `saveNewUser()` - Cadastrar novo usuário
-- `validateLogin()` - Validar credenciais
-
----
-
-## 🎨 Diferenças da V1
-
-| Recurso | V1 (Navigation) | V2 (Expo Router) |
-|---------|----------------|------------------|
-| Navegação | React Navigation | Expo Router |
-| Persistência | ❌ Não | ✅ AsyncStorage |
-| Cadastro | Simples | Completo com validação |
-| Rotas | Manual | File-based (automático) |
-| Tabs | ❌ Não | ✅ Sim |
-| Proteção | Context manual | Automática no layout |
-
----
-
-## 🔄 Fluxo de Navegação
-
-```
-App Inicia
-    ↓
-AuthContext carrega dados do AsyncStorage
-    ↓
-Usuário logado? 
-    ├─ SIM → (tabs)/home
-    └─ NÃO → (auth)/login
-              ↓
-       Fazer cadastro? 
-              ├─ SIM → (auth)/register → Login automático → (tabs)/home
-              └─ NÃO → Login → (tabs)/home
+### 4️⃣ Configurar variáveis de ambiente
+Crie um arquivo `.env`:
+```env
+EXPO_PUBLIC_API_URL=http://192.168.15.10:3000
 ```
 
----
+### 5️⃣ Iniciar servidor backend
+```bash
+cd server
+npm start
+# Servidor rodando em http://localhost:3000
+```
 
-## 📚 Tecnologias
+### 6️⃣ Iniciar aplicativo mobile
+```bash
+npm start
+# Escanear QR code com o Expo Go
+```
 
-- **Expo SDK 51+**
-- **Expo Router** - Navegação moderna
-- **AsyncStorage** - Storage local
-- **React Native** - Framework
-- **JavaScript** - Linguagem
+## 📋 Categorias de Receitas
 
----
+| Categoria | ID | Exemplos |
+|-----------|----|----|
+| 🍰 Sobremesas | 1 | Bolo, Pudim, Brigadeiro |
+| 🌮 Lanches | 2 | Macarrão, Lasanha, Nhoque |
+| 💪 Diet | 3 | Bife à Parmegiana, Frango Assado |
+| 🥗 Vegetariano | 4 | Salada, Quiche, Falafel |
+| 🥤 Bebidas | 5 | Suco, Vitamina, Café Gelado |
+
+## 🔐 Autenticação
+
+### Login
+```javascript
+// Email: teste@appetite.com
+// Senha: 123456
+```
+
+### Criar Nova Conta
+Clique em "Cadastre-se" e preencha os dados!
+
+## 🎨 Paleta de Cores
+
+```
+Verde Principal: #2E7D32
+Rosa Destaque: #E91E63
+Cinza Neutro: #666666
+Fundo Claro: #FFFCFC
+```
+
+## 📱 Funcionalidades por Tela
+
+### 🏠 Home
+- Banner com "Receitas da Semana"
+- Navegação rápida por categorias
+- Receitas populares (IDs pares)
+- Dicas de culinária
+
+### 🔍 Buscar
+- Listar todas as receitas
+- Pesquisa por nome
+- Filtros por dificuldade
+- Filtro de receitas curtidas
+- Paginação (50 receitas por página)
+
+### ➕ Criar Receita
+- Upload de imagem
+- Ingredientes dinâmicos
+- Modo de preparo
+- Tempo de preparo
+- Avaliação com estrelas
+
+### 📖 Detalhes da Receita
+- Imagem grande
+- Ingredientes checáveis
+- Modo de preparo numerado
+- Sistema de favoritos
+- Deletar receita (se for o criador)
+
+### 👤 Perfil
+- Dados do usuário
+- Ações rápidas
+- Informações de conta
+- Logout
 
 ## 🐛 Troubleshooting
 
-### Erro de dependências
+### Erro de Conexão com API
 ```bash
-npm install --legacy-peer-deps
+# Verificar IP local
+ipconfig getifaddr en0  # macOS
+ipconfig             # Windows
+
+# Atualizar .env com IP correto
+EXPO_PUBLIC_API_URL=http://seu-ip:3000
 ```
 
-### Limpar cache
+### Banco de dados não conecta
 ```bash
-npx expo start --clear
+# Verificar se PostgreSQL está rodando
+psql -U postgres -l
+
+# Criar banco se não existir
+createdb appetitedb
 ```
 
-### Resetar AsyncStorage
-- Entre no app
-- Vá em Perfil → Sair
-- Dados serão limpos
+### Categorias não aparecem corretamente
+```bash
+# Resetar banco de dados
+dropdb appetitedb
+createdb appetitedb
+psql appetitedb < database/seed.sql
+```
+
+## 📚 API Endpoints
+
+### Receitas
+- `GET /api/receitas` - Listar todas
+- `GET /api/receitas/:id` - Detalhes
+- `POST /api/receitas` - Criar nova
+- `PUT /api/receitas/:id/favorita` - Favoritar/desfavoritar
+- `DELETE /api/receitas/:id` - Deletar
+
+## 🤝 Contribuindo
+
+1. Fork o projeto
+2. Crie uma branch (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📝 Licença
+
+Este projeto está sob licença MIT. Veja o arquivo LICENSE para mais detalhes.
+
+## 👨‍💻 Autor
+
+**Seu Nome** - Desenvolvedor Full Stack
+
+- GitHub: [@seu-usuario](https://github.com/seu-usuario)
+- Email: seu.email@example.com
+
+## 🙏 Agradecimentos
+
+- Expo por facilitar o desenvolvimento mobile
+- React Native community
+- Inspiração em apps culinários modernos
 
 ---
 
-## 🚀 Próximos Passos
+**⭐ Se gostou do projeto, deixe uma estrela!**
 
-- [ ] Integrar com API backend
-- [ ] Adicionar foto de perfil
-- [ ] Recuperação de senha
-- [ ] Criptografia de senha (bcrypt)
-- [ ] Modo escuro
-- [ ] Animações de transição
-
----
-
-**Desenvolvido com ❤️ usando Expo Router + AsyncStorage**
-
+Feito com ❤️ por TDS1
